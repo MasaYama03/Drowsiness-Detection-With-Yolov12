@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drowsiness Detection System</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <!-- Navigation Bar - Shows on all pages after login -->
+    <nav id="navbar" class="bg-white shadow-lg fixed w-full top-0 z-50 hidden">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center flex-shrink-0">
+                    <div class="text-3xl font-bold text-indigo-600">
+                        <i class="fas fa-eye text-3xl"></i> DrowsyGuard
+                    </div>
+                </div>
+                <div class="hidden md:flex items-center space-x-4 ml-auto">
+                    <a href="#" onclick="showPage('dashboard')" class="nav-link text-gray-700 hover:text-indigo-600 font-semibold text-lg">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="#" onclick="showPage('detection')" class="nav-link text-gray-700 hover:text-indigo-600 font-semibold text-lg">
+                        <i class="fas fa-camera mr-2"></i>Detection
+                    </a>
+                    <a href="#" onclick="showPage('history')" class="nav-link text-gray-700 hover:text-indigo-600 font-semibold text-lg">
+                        <i class="fas fa-history mr-2"></i>History
+                    </a>
+                    <a href="#" onclick="showPage('settings')" class="nav-link text-gray-700 hover:text-indigo-600 font-semibold text-lg">
+                        <i class="fas fa-cog mr-2"></i>Settings
+                    </a>
+                    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-300">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                    </button>
+                </div>
+                <!-- Mobile menu button -->
+                <div class="md:hidden">
+                    <button id="mobile-menu-btn" class="text-gray-700">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile menu -->
+        <div id="mobile-menu" class="md:hidden bg-white border-t hidden">
+            <div class="px-4 py-2 space-y-2">
+                <a href="#" onclick="showPage('dashboard')" class="block py-2 text-gray-700 hover:text-indigo-600">Dashboard</a>
+                <a href="#" onclick="showPage('detection')" class="block py-2 text-gray-700 hover:text-indigo-600">Detection</a>
+                <a href="#" onclick="showPage('history')" class="block py-2 text-gray-700 hover:text-indigo-600">History</a>
+                <a href="#" onclick="showPage('settings')" class="block py-2 text-gray-700 hover:text-indigo-600">Settings</a>
+                <button onclick="logout()" class="block w-full text-left py-2 text-red-600">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div id="main-container" class="min-h-screen">
+        <!-- Authentication Pages Section -->
+        <div id="auth-section" class="min-h-screen flex items-center justify-center">
+            <!-- Login Page -->
+            <div id="login-page" class="w-full max-w-md">
+                <div class="bg-white rounded-2xl shadow-2xl p-8">
+                    <div class="text-center mb-8">
+                        <div class="text-4xl text-indigo-600 mb-4">
+                            <i class="fas fa-eye"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-800">Welcome Back</h2>
+                        <p class="text-gray-600 mt-2">Sign in to your DrowsyGuard account</p>
+                    </div>
+                    
+                    <form id="login-form" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <div class="relative">
+                                <input type="email" id="login-email" required 
+                                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <i class="fas fa-envelope absolute left-4 top-4 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            <div class="relative">
+                                <input type="password" id="login-password" required 
+                                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <i class="fas fa-lock absolute left-4 top-4 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" 
+                                class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition duration-300 font-medium">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Sign In
+                        </button>
+                    </form>
+                    
+                    <div class="text-center mt-6">
+                        <p class="text-gray-600">
+                            Don't have an account? 
+                            <button onclick="showSignup()" class="text-indigo-600 hover:text-indigo-700 font-medium">
+                                Sign up here
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signup Page -->
+            <div id="signup-page" class="w-full max-w-md hidden">
+                <div class="bg-white rounded-2xl shadow-2xl p-8">
+                    <div class="text-center mb-8">
+                        <div class="text-4xl text-indigo-600 mb-4">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <h2 class="text-3xl font-bold text-gray-800">Create Account</h2>
+                        <p class="text-gray-600 mt-2">Join DrowsyGuard for safer driving</p>
+                    </div>
+                    
+                    <form id="signup-form" class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                            <div class="relative">
+                                <input type="text" id="signup-name" required 
+                                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <i class="fas fa-user absolute left-4 top-4 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                            <div class="relative">
+                                <input type="email" id="signup-email" required 
+                                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <i class="fas fa-envelope absolute left-4 top-4 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            <div class="relative">
+                                <input type="password" id="signup-password" required 
+                                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <i class="fas fa-lock absolute left-4 top-4 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+                            <div class="relative">
+                                <input type="password" id="signup-confirm-password" required 
+                                       class="w-full px-4 py-3 pl-12 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                                <i class="fas fa-lock absolute left-4 top-4 text-gray-400"></i>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" 
+                                class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 transition duration-300 font-medium">
+                            <i class="fas fa-user-plus mr-2"></i>Create Account
+                        </button>
+                    </form>
+                    
+                    <div class="text-center mt-6">
+                        <p class="text-gray-600">
+                            Already have an account? 
+                            <button onclick="showLogin()" class="text-indigo-600 hover:text-indigo-700 font-medium">
+                                Sign in here
+                            </button>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main App Section - Hidden initially -->
+        <div id="app-section" class="hidden pt-20">
+            <!-- Dashboard Page Section -->
+            <div id="dashboard-page" class="container mx-auto px-4 py-8">
+                <!-- Dashboard content will be loaded here -->
+            </div>
+
+            <!-- Detection Page Section -->
+            <div id="detection-page" class="container mx-auto px-4 py-8 hidden">
+                <!-- Detection content will be loaded here -->
+            </div>
+
+            <!-- History Page Section -->
+            <div id="history-page" class="container mx-auto px-4 py-8 hidden">
+                <!-- History content will be loaded here -->
+            </div>
+
+            <!-- Settings Page Section -->
+            <div id="settings-page" class="container mx-auto px-4 py-8 hidden">
+                <!-- Settings content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 flex items-center space-x-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+            <span class="text-gray-700">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <script src="js/main.js?v=2025080204"></script>
+    <script src="js/auth.js?v=2025080204"></script>
+    <script src="js/dashboard.js?v=2025080204"></script>
+    <script src="js/detection.js?v=2025080204"></script>
+    <script src="js/history.js?v=2025080205"></script>
+    <script src="js/settings.js?v=2025080204"></script>
+    <script src="js/contact-support.js?v=2025080201"></script>
+</body>
+</html>
