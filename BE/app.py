@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory, send_file, Response
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -17,6 +17,17 @@ from collections import defaultdict, deque
 import threading
 import time
 import traceback
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+PUBLIC_PATH_PREFIXES = [
+    "/sound-default/",
+    "/uploads/",
+    "/static/",
+]
+
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -30,7 +41,7 @@ app = Flask(__name__)
 
 # Configuration
 app.config['SECRET_KEY'] = 'your-secret-key-here'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123@localhost:5432/drowsys_db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = 'jwt-secret-string'
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
@@ -41,6 +52,7 @@ app.config['JWT_HEADER_TYPE'] = 'Bearer'
 # Initialize JWT
 jwt = JWTManager(app)
 
+
 # Configure CORS with specific settings
 CORS(app, 
      resources={
@@ -50,10 +62,22 @@ CORS(app,
              "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
              "supports_credentials": True,
              "expose_headers": ["Content-Disposition", "X-Total-Count"],
-             "max_age": 600  # Cache preflight request for 10 minutes
+             "max_age": 600
+         },
+         r"/sound-default/*": {
+             "origins": "*",
+             "methods": ["GET", "OPTIONS"],
+             "allow_headers": ["Content-Type"],
+             "max_age": 600
+         },
+         r"/uploads/*": {
+             "origins": "*",
+             "methods": ["GET", "OPTIONS"],
+             "allow_headers": ["Content-Type"],
+             "max_age": 600
          }
      },
-     supports_credentials=True
+     supports_credentials=False
 )
 
 # Detection Configuration
@@ -72,7 +96,6 @@ app.config['ALARM_SOUNDS_FOLDER'] = os.path.join(os.path.dirname(__file__), 'upl
 
 # Initialize extensions
 jwt = JWTManager(app)
-CORS(app, origins=['http://localhost:8080', 'http://localhost:3000'], supports_credentials=True)
 
 # Global variables
 model = None
@@ -129,6 +152,32 @@ os.makedirs('processed', exist_ok=True)
 from api_database import db_api
 app.register_blueprint(db_api)
 
+@app.route("/sound-default/<path:filename>")
+@cross_origin(origins="*", methods=["GET", "OPTIONS"])
+def serve_default_alarm(filename):
+    """Serve default alarm sounds with CORS enabled"""
+    try:
+        sounds_dir = os.path.join(os.path.dirname(__file__), 'sound-default')
+        print(f"[ALARM] Serving default sound: {filename} from {sounds_dir}")
+        
+        if not os.path.exists(sounds_dir):
+            print(f"[ALARM] Directory not found: {sounds_dir}")
+            return jsonify({'error': 'Sound directory not found'}), 404
+            
+        file_path = os.path.join(sounds_dir, filename)
+        if not os.path.exists(file_path):
+            print(f"[ALARM] File not found: {file_path}")
+            return jsonify({'error': 'Sound file not found'}), 404
+            
+        response = send_from_directory(sounds_dir, filename)
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
+        response.headers['Cache-Control'] = 'public, max-age=3600'
+        return response
+    except Exception as e:
+        print(f"[ALARM] Error serving sound: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+    
 # Add a direct dashboard endpoint to test routing
 @app.route('/api/dashboard/stats', methods=['GET', 'OPTIONS'])
 def dashboard_stats_direct():
@@ -490,7 +539,7 @@ def get_alarm_sounds():
             'name': 'Default Alarm',
             'filename': 'default',
             'original_name': 'Default Alarm',
-            'url': '/sound-default/Danger Alarm Sound Effect.mp3',
+            'url': '/sound-default/Danger.mp3', 
             'deletable': False
         }]
         
@@ -1711,17 +1760,13 @@ def serve_user_alarm_sound(filename):
         return jsonify({'error': 'Sound file not found'}), 404
 
 # Static file serving for default alarm sounds
-@app.route('/sound-default/<filename>')
+@app.route('/sound-default/<path:filename>', methods=['GET'])
+@cross_origin()
 def serve_default_alarm_sound(filename):
     """Serve default alarm sound files - DETECTION PAGE"""
     try:
         sounds_dir = os.path.join(os.path.dirname(__file__), 'sound-default')
         print(f"Looking for default sound file: {filename}")
-        print(f"In directory: {sounds_dir}")
-        print(f"Directory exists: {os.path.exists(sounds_dir)}")
-        if os.path.exists(sounds_dir):
-            files = os.listdir(sounds_dir)
-            print(f"Available default files: {files}")
         return send_from_directory(sounds_dir, filename)
     except Exception as e:
         print(f"Error serving default sound file: {e}")
@@ -1849,11 +1894,17 @@ if __name__ == '__main__':
 # Add request logging middleware
 @app.before_request
 def log_request():
+    # bypass static public assets (agar audio tidak kena blok auth)
+    if any(request.path.startswith(prefix) for prefix in PUBLIC_PATH_PREFIXES):
+        return None   # lanjut tanpa filter auth
+
     print(f"[REQUEST] {request.method} {request.path} from {request.remote_addr}")
+
     if request.headers.get('Authorization'):
         auth_header = request.headers.get('Authorization')
         print(f"[REQUEST] Auth header: {auth_header[:50]}...")
-    # Check if this is a dashboard stats request
+
+    # contoh pengecekan spesifik route
     if request.path == '/api/dashboard/stats' and request.method == 'GET':
         print("[REQUEST] Dashboard stats GET request detected - checking routing...")
 
@@ -1864,4 +1915,4 @@ def log_response(response):
 
 if __name__ == '__main__':
     # Run without debug mode to prevent reloader issues with YOLO model
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=5050, debug=False, use_reloader=False)

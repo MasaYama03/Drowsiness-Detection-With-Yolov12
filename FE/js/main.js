@@ -13,7 +13,7 @@ const AppState = {
 };
 
 // API Configuration
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'http://localhost:5050/api';
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {

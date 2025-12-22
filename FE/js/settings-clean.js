@@ -42,7 +42,7 @@ async function loadSettings() {
         // Construct profile picture URL
         let profilePictureUrl = `${API_BASE_URL}/default-avatar.png`;
         if (profile.photo && profile.photo !== 'default-avatar.png') {
-            profilePictureUrl = `http://localhost:5000/uploads/profile_pictures/${profile.photo}`;
+            profilePictureUrl = `http://localhost:5050/uploads/profile_pictures/${profile.photo}`;
         }
         
         // Render settings page

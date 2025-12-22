@@ -286,7 +286,7 @@ def get_recent_sessions():
             'yawn_count': session.yawn_count or 0,             # Changed from yawnCount
             'total_detections': (session.drowsiness_count or 0) + (session.awake_count or 0) + (session.yawn_count or 0),  # Added total_detections
             'status': session.status,
-            'created_at': session.created_at.isoformat() if session.created_at else None
+            'created_at': session.start_time.isoformat() if session.start_time else None  # Use start_time instead of created_at for correct display
         } for session in sessions]
         
         return jsonify({'sessions': sessions_data}), 200

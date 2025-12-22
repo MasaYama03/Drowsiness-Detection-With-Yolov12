@@ -62,13 +62,13 @@ async function _loadSettings() {
     }
     
     // Handle profile picture URL
-    let profilePictureUrl = `http://localhost:5000/default-avatar.png`;
+    let profilePictureUrl = `http://localhost:5050/default-avatar.png`;
     console.log('Profile data:', profile); // Debug profile data
     if (profile.profile_photo || profile.profilePhoto) {
         const photoFilename = profile.profile_photo || profile.profilePhoto;
         console.log('Photo filename:', photoFilename); // Debug filename
         if (photoFilename && photoFilename !== 'default-avatar.png') {
-            profilePictureUrl = `http://localhost:5000/uploads/profile_pictures/${photoFilename}`;
+            profilePictureUrl = `http://localhost:5050/uploads/profile_pictures/${photoFilename}`;
         }
     }
     console.log('Final profile picture URL:', profilePictureUrl); // Debug final URL
@@ -545,7 +545,7 @@ async function uploadProfilePicture(file) {
         console.log('Profile image element:', profileImg); // Debug log
         console.log('Upload result:', result); // Debug the full response
         if (profileImg) {
-            const newImageUrl = `http://localhost:5000/uploads/profile_pictures/${result.profilePhoto}?t=${Date.now()}`;
+            const newImageUrl = `http://localhost:5050/uploads/profile_pictures/${result.profilePhoto}?t=${Date.now()}`;
             console.log('Setting image src to:', newImageUrl); // Debug log
             profileImg.src = newImageUrl;
             
@@ -830,7 +830,7 @@ function showDeveloperProfile() {
             
             <!-- Developer Photo -->
             <div style="margin-bottom: 24px; display: flex; justify-content: center; align-items: center;">
-                <img src="http://localhost:5000/profile_owner/Masahiro.jpg" alt="Masahiro Gerarudo Yamazaki" 
+                <img src="http://localhost:5050/profile_owner/Masahiro.jpg" alt="Masahiro Gerarudo Yamazaki" 
                      style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #667eea; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; display: block;" 
                      onmouseover="this.style.transform='scale(1.05)';"
                      onmouseout="this.style.transform='scale(1)';"

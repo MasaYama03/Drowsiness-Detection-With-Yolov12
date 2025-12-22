@@ -1,6 +1,9 @@
 // Detection JavaScript - Handles live camera detection and file upload detection
 // This section manages the detection page with live camera and file upload features
 
+// Get audio base URL from config or use default
+const AUDIO_BASE_URL = window.CONFIG?.AUDIO_BASE_URL || 'http://localhost:5050';
+
 // Global variables for live detection
 let detectionStream = null;
 let drowsinessStartTime = null;
@@ -13,7 +16,7 @@ let totalSessionTime = 0; // Accumulated time in seconds
 let currentAlarmSettings = {
     triggerTime: 5,
     volume: 0.8,
-    soundFile: 'http://localhost:5000/sound-default/Danger Alarm Sound Effect.mp3' // Default sound file from BE/sound-default
+    soundFile: `${AUDIO_BASE_URL}/sound-default/Danger.mp3` // Default sound file from BE/sound-default
 };
 
 /**
@@ -44,11 +47,16 @@ async function loadDetection() {
     try {
         // Fetch user alarm settings
         // Connects to: BE/api_database.py - /settings/alarm endpoint
-        const settings = await apiRequest('/settings/alarm');
-        currentAlarmSettings = { ...currentAlarmSettings, ...settings };
+        try {
+            const settings = await apiRequest('/settings/alarm');
+            currentAlarmSettings = { ...currentAlarmSettings, ...settings };
+        } catch (error) {
+            console.warn('Could not load alarm settings, using defaults:', error);
+            // Use default settings
+        }
         
         // Load available alarm sounds
-        await loadDetectionAlarmSounds();
+        // await loadDetectionAlarmSounds();
         
         detectionContainer.innerHTML = `
             <div class="fade-in">
@@ -162,36 +170,6 @@ async function loadDetection() {
                                             <span>1s</span>
                                             <span id="trigger-time-display">${currentAlarmSettings.triggerTime}s</span>
                                             <span>10s</span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Alarm Sound Management -->
-                                    <div>
-                                        <label class="form-label">Alarm Sound</label>
-                                        <!-- Alarm Sound Selection -->
-                                        <div class="space-y-3">
-                                            <div class="flex space-x-2">
-                                                <select id="detection-alarm-sound-select" class="flex-1 p-2 border border-gray-300 rounded-lg" onchange="selectDetectionAlarmSound()">
-                                                    <option value="default">Default Alarm</option>
-                                                </select>
-                                                <button type="button" onclick="testDetectionAlarmSound()" class="btn bg-yellow-500 text-white hover:bg-yellow-600">
-                                                    <i class="fas fa-play mr-2"></i>Test
-                                                </button>
-                                                <button type="button" onclick="deleteDetectionAlarmSound()" id="detection-delete-alarm-btn" class="btn bg-red-500 text-white hover:bg-red-600 hidden">
-                                                    <i class="fas fa-trash mr-2"></i>Delete
-                                                </button>
-                                            </div>
-                                            
-                                            <!-- Upload new sound -->
-                                            <div class="flex space-x-2">
-                                                <input type="file" id="alarm-sound" accept=".mp3,.wav,.ogg" 
-                                                       onchange="uploadAlarmSound(this.files[0])" 
-                                                       class="flex-1 p-2 border border-gray-300 rounded-lg">
-                                                <button type="button" onclick="document.getElementById('alarm-sound').click()" class="btn bg-blue-500 text-white hover:bg-blue-600">
-                                                    <i class="fas fa-upload mr-2"></i>Upload New
-                                                </button>
-                                            </div>
-                                            <p class="text-sm text-gray-500">Upload MP3, WAV, or OGG file for custom alarm sound</p>
                                         </div>
                                     </div>
                                 </div>
@@ -714,14 +692,21 @@ function handleDrowsinessDetection(result) {
 function createBeepSound() {
     try {
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        let isPlaying = false;
+        let oscillator = null;
+        let gainNode = null;
         
-        // Create a simple audio element that plays the beep
         const audio = {
             play: () => {
                 return new Promise((resolve, reject) => {
                     try {
-                        const oscillator = audioContext.createOscillator();
-                        const gainNode = audioContext.createGain();
+                        if (isPlaying) {
+                            resolve();
+                            return;
+                        }
+                        
+                        oscillator = audioContext.createOscillator();
+                        gainNode = audioContext.createGain();
                         
                         oscillator.connect(gainNode);
                         gainNode.connect(audioContext.destination);
@@ -729,30 +714,31 @@ function createBeepSound() {
                         oscillator.frequency.value = 800; // 800 Hz beep
                         oscillator.type = 'sine';
                         
-                        // Set volume
-                        gainNode.gain.setValueAtTime(this.volume || 0.8, audioContext.currentTime);
+                        // Set volume - use this.volume if available
+                        const volume = this.volume || 0.8;
+                        gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
                         
-                        oscillator.start();
+                        oscillator.start(audioContext.currentTime);
+                        isPlaying = true;
                         
-                        // Stop after 1 second if not looping
-                        if (!this.loop) {
-                            setTimeout(() => {
-                                try {
-                                    oscillator.stop();
-                                } catch (e) {
-                                    // Oscillator already stopped
-                                }
-                            }, 1000);
-                        }
-                        
+                        console.log('🔊 Web Audio beep started at', volume, 'volume');
                         resolve();
                     } catch (error) {
+                        console.error('❌ Error starting beep:', error);
                         reject(error);
                     }
                 });
             },
             pause: () => {
-                // For beep sound, we can't really pause, just resolve
+                try {
+                    if (oscillator && isPlaying) {
+                        oscillator.stop();
+                        isPlaying = false;
+                        console.log('⏸️ Beep sound stopped');
+                    }
+                } catch (e) {
+                    // Oscillator already stopped
+                }
                 return Promise.resolve();
             },
             volume: 0.8,
@@ -764,7 +750,10 @@ function createBeepSound() {
         console.error('❌ Error creating beep sound:', error);
         // Return a dummy audio object that doesn't crash
         return {
-            play: () => Promise.resolve(),
+            play: () => {
+                console.log('🔔 Using silent fallback (Web Audio not available)');
+                return Promise.resolve();
+            },
             pause: () => Promise.resolve(),
             volume: 0.8,
             loop: false
@@ -792,7 +781,7 @@ function triggerAlarm() {
     console.log('🎵 Sound file:', currentAlarmSettings.soundFile);
     
     // Always use default sound file if soundFile is undefined
-    const defaultSoundFile = 'http://localhost:5000/sound-default/Danger Alarm Sound Effect.mp3';
+    const defaultSoundFile = `${AUDIO_BASE_URL}/sound-default/Danger.mp3`;
     const soundFileToUse = currentAlarmSettings.soundFile || defaultSoundFile;
     
     console.log('🎵 Loading audio file:', soundFileToUse);
@@ -805,14 +794,16 @@ function triggerAlarm() {
         console.error('❌ Audio error:', e);
         console.log('🔔 Falling back to beep sound...');
         // Fallback to beep sound
-        alarmAudio = createBeepSound();
-        alarmAudio.volume = currentAlarmSettings.volume;
-        alarmAudio.loop = true;
-        alarmAudio.play().then(() => {
-            console.log('✅ Fallback beep sound playing');
-        }).catch(beepError => {
-            console.error('❌ Fallback beep also failed:', beepError);
-        });
+        const beepAudio = createBeepSound();
+        if (beepAudio && beepAudio.play) {
+            beepAudio.volume = currentAlarmSettings.volume;
+            beepAudio.loop = true;
+            beepAudio.play().then(() => {
+                console.log('✅ Fallback beep sound playing');
+            }).catch(beepError => {
+                console.error('❌ Fallback beep also failed:', beepError);
+            });
+        }
     });
     alarmAudio.addEventListener('loadeddata', () => console.log('🎵 Audio: Data loaded'));
     alarmAudio.addEventListener('play', () => console.log('▶️ Audio: Started playing'));
@@ -1065,6 +1056,7 @@ let currentTestAudio = null;
 let testAudioTimeout = null;
 
 async function uploadAlarmSound(file) {
+    /*
     if (!file) {
         console.error('No file selected');
         showToast('Silakan pilih file untuk diupload', 'error');
@@ -1087,7 +1079,7 @@ async function uploadAlarmSound(file) {
             throw new Error('Sesi Anda telah berakhir. Silakan login kembali.');
         }
         
-        const apiUrl = 'http://localhost:5000/api/settings/alarm-sounds';
+        const apiUrl = `${AUDIO_BASE_URL}/api/settings/alarm-sounds`;
         console.log('Mengunggah suara alarm ke:', apiUrl);
         
         // Tampilkan loading indicator jika tombol ditemukan
@@ -1142,34 +1134,163 @@ async function uploadAlarmSound(file) {
     } finally {
         hideLoading();
     }
+    */
 }
 
 // New alarm sound management functions for detection page
+/* ALARM SOUND FEATURE DISABLED - COMMENTED OUT
 async function loadDetectionAlarmSounds() {
     try {
         console.log('Memuat daftar suara alarm...');
-        const select = document.getElementById('detection-alarm-sound-select');
-        if (!select) {
-            console.warn('Elemen select suara alarm tidak ditemukan. Mencoba mencari kembali...');
-            // Coba temukan select element di dalam modal jika ada
-            const modal = document.querySelector('.alarm-settings-modal');
-            if (modal) {
-                const modalSelect = modal.querySelector('select');
-                if (modalSelect) {
-                    modalSelect.id = 'detection-alarm-sound-select';
-                    return loadDetectionAlarmSounds();
-                }
-            }
-            console.error('Elemen select suara alarm tidak ditemukan setelah pencarian ulang');
+        
+        // Get the detection page container
+        const detectionPage = document.getElementById('detection-page');
+        if (!detectionPage) {
+            console.error('Halaman deteksi tidak ditemukan');
             return;
+        }
+
+        // Create or get the alarm settings container
+        let alarmSettings = document.getElementById('alarm-settings-container');
+        if (!alarmSettings) {
+            console.log('Membuat container pengaturan alarm baru...');
+            alarmSettings = document.createElement('div');
+            alarmSettings.id = 'alarm-settings-container';
+            // Add more prominent styling
+            alarmSettings.className = 'p-6 bg-white rounded-lg shadow-lg mb-6 border-2 border-blue-400 w-full max-w-4xl mx-auto';
+            alarmSettings.style.marginTop = '20px';
+            alarmSettings.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+            
+            // Add a title with better visibility
+            const title = document.createElement('h2');
+            title.className = 'text-2xl font-bold text-blue-600 mb-4';
+            title.style.borderBottom = '2px solid #3b82f6';
+            title.style.paddingBottom = '10px';
+            title.textContent = 'Pengaturan Alarm';
+            
+            // Create a wrapper for better organization
+            const wrapper = document.createElement('div');
+            wrapper.className = 'alarm-settings-wrapper';
+            wrapper.style.padding = '15px';
+            wrapper.style.backgroundColor = '#f8fafc';
+            wrapper.style.borderRadius = '8px';
+            wrapper.style.border = '1px solid #e2e8f0';
+            
+            // Add title and wrapper to container
+            alarmSettings.appendChild(title);
+            alarmSettings.appendChild(wrapper);
+            
+            // Add the container to the top of the detection page
+            const firstChild = detectionPage.firstChild;
+            if (firstChild) {
+                detectionPage.insertBefore(alarmSettings, firstChild);
+            } else {
+                detectionPage.appendChild(alarmSettings);
+            }
+            
+            console.log('Container pengaturan alarm berhasil dibuat');
+        }
+
+        // Get or create the select element
+        let select = document.getElementById('detection-alarm-sound-select');
+        if (select && select.parentNode) {
+            // If select exists, remove it to prevent duplicates
+            select.parentNode.removeChild(select);
+        }
+        
+        // Create a new select element
+        console.log('Membuat elemen select suara alarm baru...');
+        select = document.createElement('select');
+        select.id = 'detection-alarm-sound-select';
+        // Enhanced styling for better visibility
+        select.className = 'alarm-sound-select w-full p-4 border-3 border-blue-400 rounded-lg mb-6 text-gray-800 bg-white font-medium';
+        select.onchange = selectDetectionAlarmSound;
+            select.style.display = 'block';
+            select.style.width = '100%';
+            select.style.padding = '12px 16px';
+            select.style.border = '2px solid #3b82f6';
+            select.style.borderRadius = '8px';
+            select.style.margin = '15px 0';
+            select.style.fontSize = '16px';
+            select.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            select.style.transition = 'all 0.3s ease';
+            
+            // Add hover effect
+            select.onmouseover = () => {
+                select.style.borderColor = '#2563eb';
+                select.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.2)';
+            };
+            select.onmouseout = () => {
+                select.style.borderColor = '#3b82f6';
+                select.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+            };
+            
+            // Add file input for new alarm sounds
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.id = 'alarm-sound-upload';
+            fileInput.accept = 'audio/*';
+            fileInput.className = 'mb-4 block w-full text-sm text-gray-500 p-2 border rounded-lg';
+            fileInput.style.display = 'block';
+            fileInput.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    uploadAlarmSound(file);
+                }
+            };
+            
+            const uploadLabel = document.createElement('label');
+            uploadLabel.textContent = 'Unggah Suara Alarm Baru';
+            uploadLabel.htmlFor = 'alarm-sound-upload';
+            uploadLabel.className = 'block text-sm font-medium text-gray-700 mb-1';
+            
+            // Get the wrapper inside alarmSettings or use alarmSettings itself
+            const wrapper = alarmSettings.querySelector('.alarm-settings-wrapper') || alarmSettings;
+            
+            // Clear any existing content in the wrapper
+            wrapper.innerHTML = '';
+            
+            // Create a container for the file upload section
+            const uploadContainer = document.createElement('div');
+            uploadContainer.className = 'upload-container mb-6 p-4 bg-blue-50 rounded-lg';
+            uploadContainer.style.border = '1px dashed #93c5fd';
+            
+            // Add upload elements to the upload container
+            uploadContainer.appendChild(uploadLabel);
+            uploadContainer.appendChild(fileInput);
+            
+            // Add upload container to wrapper
+            wrapper.appendChild(uploadContainer);
+            
+            // Add the select dropdown with a label
+            const selectLabel = document.createElement('label');
+            selectLabel.textContent = 'Pilih Suara Alarm';
+            selectLabel.className = 'block text-sm font-medium text-gray-700 mb-2';
+            selectLabel.htmlFor = 'detection-alarm-sound-select';
+            
+            wrapper.appendChild(selectLabel);
+            wrapper.appendChild(select);
+            
+            // Force show the container and make sure it's visible
+            alarmSettings.style.display = 'block';
+            alarmSettings.style.visibility = 'visible';
+            alarmSettings.style.opacity = '1';
+            alarmSettings.style.position = 'relative';
+            
+            console.log('Elemen suara alarm berhasil ditambahkan ke halaman');
+            console.log('Struktur container:', {
+                container: alarmSettings,
+                hasParent: !!alarmSettings.parentElement,
+                parent: alarmSettings.parentElement?.id || alarmSettings.parentElement?.className
+            });
         }
 
         // Save current selection before clearing
         const currentValue = select.value || 'default';
         
-        // Tampilkan status loading
+        // Show loading state
         select.disabled = true;
-        select.innerHTML = '<option>Memuat daftar suara...</option>';
+        select.innerHTML = '<option value="">Memuat daftar suara...</option>';
         
         try {
             const token = localStorage.getItem('authToken');
@@ -1177,7 +1298,9 @@ async function loadDetectionAlarmSounds() {
                 throw new Error('Sesi Anda telah berakhir. Silakan login kembali.');
             }
 
-            const apiUrl = `${API_BASE_URL}/api/settings/alarm-sounds`;
+            // Remove any duplicate /api in the URL
+            const baseUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`;
+            const apiUrl = `${baseUrl}/settings/alarm-sounds`;
             console.log('Mengambil daftar suara alarm dari:', apiUrl);
             
             const response = await fetch(apiUrl, {
@@ -1208,32 +1331,46 @@ async function loadDetectionAlarmSounds() {
             
             console.log('Available alarm sounds:', availableAlarmSounds);
             
-            // Kosongkan dan isi ulang dropdown
+            // Clear and repopulate dropdown
             select.innerHTML = '';
             
-            // Selalu tambahkan opsi default terlebih dahulu
+            // Add a single default option
             const defaultOption = document.createElement('option');
             defaultOption.value = 'default';
-            defaultOption.textContent = 'Alarm Standar';
+            defaultOption.textContent = 'Default Alarm';
             select.appendChild(defaultOption);
             
-            // Tambahkan suara kustom jika ada
-            if (sounds && sounds.length > 0) {
+            // Add custom sounds if available
+            if (sounds && Array.isArray(sounds)) {
+                console.log('Adding sounds to dropdown:', sounds);
+                
+                // Filter out duplicate sounds by filename
+                const uniqueSounds = [];
+                const seenFilenames = new Set();
+                
                 sounds.forEach(sound => {
-                    if (sound && sound.filename) {
-                        const option = document.createElement('option');
-                        option.value = sound.filename;
-                        // Gunakan name jika ada, jika tidak gunakan original_name, terakhir gunakan filename
-                        option.textContent = sound.name || sound.original_name || sound.filename;
-                        option.dataset.soundId = sound.id || '';
-                        select.appendChild(option);
-                        console.log('Added sound to dropdown:', sound.name || sound.filename);
-                    } else {
-                        console.warn('Invalid sound data:', sound);
+                    if (sound && sound.filename && !seenFilenames.has(sound.filename)) {
+                        seenFilenames.add(sound.filename);
+                        uniqueSounds.push(sound);
                     }
                 });
                 
-                console.log(`Berhasil memuat ${sounds.length} suara alarm`);
+                // Add unique sounds to dropdown
+                uniqueSounds.forEach(sound => {
+                    const option = document.createElement('option');
+                    option.value = sound.filename;
+                    option.textContent = sound.name || sound.original_name || sound.filename;
+                    option.dataset.soundId = sound.id || '';
+                    select.appendChild(option);
+                    
+                    console.log('Added sound to dropdown:', {
+                        value: sound.filename,
+                        text: sound.name || sound.original_name || sound.filename,
+                        element: option
+                    });
+                });
+                
+                console.log(`Berhasil memuat ${uniqueSounds.length} suara alarm`);
             } else {
                 console.log('Tidak ada suara alarm kustom yang ditemukan');
             }
@@ -1242,6 +1379,24 @@ async function loadDetectionAlarmSounds() {
             const optionExists = Array.from(select.options).some(opt => opt.value === currentValue);
             select.value = optionExists ? currentValue : 'default';
             selectedAlarmSound = select.value;
+            
+            // Debug: Log the select element and its styles
+            console.log('Select element:', select);
+            console.log('Select parent element:', select.parentElement);
+            console.log('Select visibility:', {
+                display: window.getComputedStyle(select).display,
+                visibility: window.getComputedStyle(select).visibility,
+                opacity: window.getComputedStyle(select).opacity,
+                position: window.getComputedStyle(select).position,
+                zIndex: window.getComputedStyle(select).zIndex
+            });
+            
+            // Force show the select element
+            select.style.display = 'block';
+            select.style.visibility = 'visible';
+            select.style.opacity = '1';
+            select.style.position = 'relative';
+            select.style.zIndex = '1000';
             
             // Perbarui UI
             updateDetectionDeleteButton();
@@ -1290,19 +1445,27 @@ async function loadDetectionAlarmSounds() {
         }
     }
 }
+*/
 
+/* ALARM SOUND FEATURE DISABLED - COMMENTED OUT
 function selectDetectionAlarmSound() {
-    const select = document.getElementById('detection-alarm-sound-select');
-    if (select) {
-        selectedAlarmSound = select.value;
-        updateDetectionDeleteButton();
-        
-        // Update current alarm settings
-        currentAlarmSettings.alarmSound = selectedAlarmSound;
-        saveAlarmSettings();
+    try {
+        const select = document.getElementById('detection-alarm-sound-select');
+        if (select) {
+            selectedAlarmSound = select.value;
+            updateDetectionDeleteButton();
+            
+            // Update current alarm settings
+            currentAlarmSettings.alarmSound = selectedAlarmSound;
+            saveAlarmSettings();
+        }
+    } catch (error) {
+        console.error('Error in selectDetectionAlarmSound:', error);
     }
 }
+*/
 
+/* ALARM SOUND FEATURE DISABLED - COMMENTED OUT
 function updateDetectionDeleteButton() {
     const deleteBtn = document.getElementById('detection-delete-alarm-btn');
     const selectedSound = availableAlarmSounds.find(sound => sound.filename === selectedAlarmSound);
@@ -1315,7 +1478,9 @@ function updateDetectionDeleteButton() {
         }
     }
 }
+*/
 
+/* ALARM SOUND FEATURE DISABLED - COMMENTED OUT
 async function deleteDetectionAlarmSound() {
     if (selectedAlarmSound === 'default') {
         showToast('Cannot delete default alarm sound', 'error');
@@ -1356,7 +1521,9 @@ async function deleteDetectionAlarmSound() {
         hideLoading();
     }
 }
+*/
 
+/* ALARM SOUND FEATURE DISABLED - COMMENTED OUT
 function testDetectionAlarmSound() {
     const testButton = document.querySelector('button[onclick="testDetectionAlarmSound()"]');
     
@@ -1374,7 +1541,7 @@ function testDetectionAlarmSound() {
         
         // Get selected alarm sound
         const selectedSound = availableAlarmSounds.find(sound => sound.filename === selectedAlarmSound);
-        const soundUrl = selectedSound ? `http://localhost:5000${selectedSound.url}` : 'http://localhost:5000/sound-default/Danger Alarm Sound Effect.mp3';
+        const soundUrl = selectedSound ? `${AUDIO_BASE_URL}${selectedSound.url}` : `${AUDIO_BASE_URL}/sound-default/Danger.mp3`;
         
         const testAudio = new Audio(soundUrl);
         
@@ -1430,7 +1597,9 @@ function testDetectionAlarmSound() {
         resetDetectionTestButton();
     }
 }
+*/
 
+/* ALARM SOUND FEATURE DISABLED - COMMENTED OUT
 function stopDetectionTestAudio() {
     if (currentTestAudio) {
         currentTestAudio.pause();
@@ -1445,7 +1614,9 @@ function stopDetectionTestAudio() {
     
     resetDetectionTestButton();
 }
+*/
 
+/* ALARM SOUND FEATURE DISABLED - COMMENTED OUT
 function resetDetectionTestButton() {
     const testButton = document.querySelector('button[onclick="testDetectionAlarmSound()"]');
     if (testButton) {
@@ -1453,6 +1624,7 @@ function resetDetectionTestButton() {
         testButton.className = 'btn bg-yellow-500 text-white hover:bg-yellow-600';
     }
 }
+*/
 
 async function saveAlarmSettings() {
     try {
@@ -1465,12 +1637,26 @@ async function saveAlarmSettings() {
     }
 }
 
-// Export functions to window for HTML onclick handlers
+// Export functions to window for HTML onclick handlers and page loading
+window.loadDetection = loadDetection;
+window.loadDetectionPage = loadDetectionPage;
 window.loadDetectionAlarmSounds = loadDetectionAlarmSounds;
 window.selectDetectionAlarmSound = selectDetectionAlarmSound;
 window.deleteDetectionAlarmSound = deleteDetectionAlarmSound;
 window.testDetectionAlarmSound = testDetectionAlarmSound;
+window.stopDetectionTestAudio = stopDetectionTestAudio;
+window.switchDetectionMode = switchDetectionMode;
+window.startLiveDetection = startLiveDetection;
+window.stopLiveDetection = stopLiveDetection;
+window.stopAlarm = stopAlarm;
+window.updateTriggerTime = updateTriggerTime;
 window.uploadAlarmSound = uploadAlarmSound;
+
+// File upload and processing functions
+window.handleFileUpload = handleFileUpload;
+window.processUploadedFile = processUploadedFile;
+window.downloadProcessedImage = downloadProcessedImage;
+window.downloadProcessedVideo = downloadProcessedVideo;
 
 function handleFileUpload(file) {
     if (!file) return;
@@ -1722,36 +1908,25 @@ function loadDetectionPage() {
         videoFile: null
     };
     
-    // Load alarm sounds when the page loads
-    loadDetectionAlarmSounds().catch(error => {
-        console.error('Error loading alarm sounds on page load:', error);
-    });
-
-    // Set up event listeners
-    document.getElementById('start-detection').addEventListener('click', startLiveDetection);
-    document.getElementById('stop-detection').addEventListener('click', stopLiveDetection);
+    // Set up event listeners - only if elements exist
+    const startDetectionBtn = document.getElementById('start-detection-btn');
+    const stopDetectionBtn = document.getElementById('stop-detection-btn');
+    
+    if (startDetectionBtn) {
+        startDetectionBtn.addEventListener('click', startLiveDetection);
+    }
+    if (stopDetectionBtn) {
+        stopDetectionBtn.addEventListener('click', stopLiveDetection);
+    }
     
     // Set up file upload
-    const fileInput = document.getElementById('file-upload');
+    const fileInput = document.getElementById('file-input');
     if (fileInput) {
         fileInput.addEventListener('change', (e) => {
             if (e.target.files.length > 0) {
                 handleFileUpload(e.target.files[0]);
             }
         });
-    }
-    
-    // Load alarm sounds
-    loadDetectionAlarmSounds().catch(error => {
-        console.error('Error loading alarm sounds:', error);
-    });
-    
-    // Load saved alarm settings if any
-    const savedSettings = localStorage.getItem('alarmSettings');
-    if (savedSettings) {
-        currentAlarmSettings = JSON.parse(savedSettings);
-        document.getElementById('alarm-trigger-time').value = currentAlarmSettings.triggerTime;
-        document.getElementById('alarm-volume').value = currentAlarmSettings.volume * 100;
     }
 }
 

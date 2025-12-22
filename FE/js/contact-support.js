@@ -219,7 +219,7 @@ class ContactSupport {
             }
             
             // Get API base URL
-            const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5000';
+            const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5050';
             const endpoint = `${API_BASE_URL}/api/contact/support`;
             
             // Update UI for submission
