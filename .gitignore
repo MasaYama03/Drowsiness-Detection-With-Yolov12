@@ -8,8 +8,7 @@ __pycache__/
 venv/
 .venv/
 
-# Model files (too large for Git)
-model/*.pt
+# Model files (onnx not used, excluded)
 model/*.onnx
 
 # Uploads & processed files
