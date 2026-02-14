@@ -57,10 +57,23 @@ jwt = JWTManager(app)
 
 # Configure CORS with specific settings - use CORS_ORIGINS env var for production
 # Configure CORS with specific settings
-# Get CORS origins from env var or default to localhost and Vercel app
-default_origins = "http://localhost:8080,http://127.0.0.1:8080,https://drowsiness-detection-with-yolov12.vercel.app"
-cors_origins_str = os.getenv('CORS_ORIGINS', default_origins)
-cors_origins = [origin.strip() for origin in cors_origins_str.split(',')]
+# Get CORS origins from env var AND force include defaults
+env_origins = os.getenv('CORS_ORIGINS', '')
+cors_origins_list = [o.strip() for o in env_origins.split(',') if o.strip()]
+
+# Always include these defaults
+defaults = [
+    "http://localhost:8080", 
+    "http://127.0.0.1:8080", 
+    "https://drowsiness-detection-with-yolov12.vercel.app"
+]
+
+for origin in defaults:
+    if origin not in cors_origins_list:
+        cors_origins_list.append(origin)
+
+cors_origins = cors_origins_list
+print(f"DEBUG: Active CORS Origins: {cors_origins}")
 
 CORS(app, 
      resources={
