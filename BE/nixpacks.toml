@@ -1,2 +1,2 @@
 [phases.setup]
-nixLibs = ["libGL", "glib"]
+nixLibs = ["libGL", "glib", "stdenv.cc.cc"]
