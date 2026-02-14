@@ -7,14 +7,14 @@ console.log('📄 Settings.js script loaded successfully - CLEAN VERSION');
 async function loadSettings() {
     console.log('🔧 Loading settings page');
     const settingsContainer = document.getElementById('settings-page');
-    
+
     if (!settingsContainer) {
         console.error('❌ Settings container not found!');
         return;
     }
-    
+
     showLoading();
-    
+
     try {
         // Get user profile data
         let profile = {};
@@ -24,12 +24,12 @@ async function loadSettings() {
         } catch (error) {
             console.warn('Error loading profile data:', error);
         }
-        
+
         // Use AppState if available
         if ((!profile || !profile.name) && AppState.currentUser) {
             profile = { ...profile, ...AppState.currentUser };
         }
-        
+
         // Set default values
         profile = {
             name: profile.name || profile.fullName || 'User',
@@ -38,13 +38,13 @@ async function loadSettings() {
             dateOfBirth: profile.dateOfBirth || '',
             photo: profile.photo || 'default-avatar.png'
         };
-        
+
         // Construct profile picture URL
         let profilePictureUrl = `${API_BASE_URL}/default-avatar.png`;
         if (profile.photo && profile.photo !== 'default-avatar.png') {
-            profilePictureUrl = `http://localhost:5050/uploads/profile_pictures/${profile.photo}`;
+            profilePictureUrl = `${CONFIG.ASSET_URL}/uploads/profile_pictures/${profile.photo}`;
         }
-        
+
         // Render settings page
         settingsContainer.innerHTML = `
             <div class="max-w-4xl mx-auto p-6">
@@ -181,23 +181,23 @@ async function loadSettings() {
                 </div>
             </div>
         `;
-        
+
         // Add event listeners
         setTimeout(() => {
             const profileForm = document.getElementById('profile-form');
             const passwordForm = document.getElementById('password-form');
-            
+
             if (profileForm) {
                 profileForm.addEventListener('submit', handleProfileUpdate);
             }
-            
+
             if (passwordForm) {
                 passwordForm.addEventListener('submit', handlePasswordChange);
             }
         }, 100);
-        
+
         hideLoading();
-        
+
     } catch (error) {
         console.error('Error loading settings:', error);
         hideLoading();

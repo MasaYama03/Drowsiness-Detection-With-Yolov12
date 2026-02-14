@@ -53,11 +53,14 @@ app.config['JWT_HEADER_TYPE'] = 'Bearer'
 jwt = JWTManager(app)
 
 
-# Configure CORS with specific settings
+# Configure CORS with specific settings - use CORS_ORIGINS env var for production
+cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080').split(',')
+cors_origins = [origin.strip() for origin in cors_origins]
+
 CORS(app, 
      resources={
          r"/api/*": {
-             "origins": ["http://localhost:8080", "http://127.0.0.1:8080"],
+             "origins": cors_origins,
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
              "allow_headers": ["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"],
              "supports_credentials": True,
@@ -1915,4 +1918,5 @@ def log_response(response):
 
 if __name__ == '__main__':
     # Run without debug mode to prevent reloader issues with YOLO model
-    app.run(host='0.0.0.0', port=5050, debug=False, use_reloader=False)
+    port = int(os.getenv('PORT', 5050))
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)

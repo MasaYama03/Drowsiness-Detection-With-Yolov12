@@ -30,7 +30,7 @@ class ContactSupport {
             justify-content: center;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         `;
-        
+
         this.modal.innerHTML = `
             <div class="support-modal" style="
                 position: fixed;
@@ -122,7 +122,7 @@ class ContactSupport {
                 </form>
             </div>
         `;
-        
+
         document.body.appendChild(this.modal);
     }
 
@@ -135,10 +135,10 @@ class ContactSupport {
 
         // Form validation
         const validateForm = () => {
-            const isFormValid = 
-                subjectInput.value.trim() && 
+            const isFormValid =
+                subjectInput.value.trim() &&
                 messageInput.value.trim().length >= 10;
-            
+
             submitBtn.disabled = !isFormValid;
         };
 
@@ -186,77 +186,77 @@ class ContactSupport {
     async handleSubmit(e) {
         console.log('[ContactSupport] Form submission started');
         e.preventDefault();
-        
+
         try {
             // Get form elements
             const subjectEl = document.getElementById('support-subject');
             const messageEl = document.getElementById('support-message');
             const submitBtn = document.getElementById('support-submit-btn');
-            
+
             if (!subjectEl || !messageEl || !submitBtn) {
                 console.error('[ContactSupport] Form elements not found');
                 showToast('Terjadi kesalahan pada form. Silakan refresh halaman.', 'error');
                 return;
             }
-            
+
             // Get form values
             const subject = subjectEl.value.trim();
             const message = messageEl.value.trim();
-            
+
             console.log('[ContactSupport] Form values:', { subject, message });
-            
+
             // Validate form
             if (!subject) {
                 console.log('[ContactSupport] No subject selected');
                 showToast('Silakan pilih subjek', 'error');
                 return;
             }
-            
+
             if (message.length < 10) {
                 console.log('[ContactSupport] Message too short');
                 showToast('Pesan harus minimal 10 karakter', 'error');
                 return;
             }
-            
+
             // Get API base URL
-            const API_BASE_URL = window.API_BASE_URL || 'http://localhost:5050';
+            const API_BASE_URL = CONFIG.ASSET_URL;
             const endpoint = `${API_BASE_URL}/api/contact/support`;
-            
+
             // Update UI for submission
             submitBtn.disabled = true;
             const originalBtnText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Mengirim...';
-            
+
             console.log('[ContactSupport] Sending request to:', endpoint);
-            
+
             // Prepare request
             const requestData = {
                 subject: subject,
                 message: message,
                 timestamp: new Date().toISOString()
             };
-            
+
             const headers = {
                 'Content-Type': 'application/json',
                 'Accept': 'application/json'
             };
-            
+
             // Add auth token if available
             const authToken = localStorage.getItem('authToken');
             if (authToken) {
                 headers['Authorization'] = `Bearer ${authToken}`;
                 console.log('[ContactSupport] Added auth token to request');
             }
-            
+
             // Make the request
             const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: headers,
                 body: JSON.stringify(requestData)
             });
-            
+
             console.log('[ContactSupport] Response status:', response.status);
-            
+
             if (!response.ok) {
                 let errorMessage = `Gagal mengirim pesan (${response.status}).`;
                 try {
@@ -268,23 +268,23 @@ class ContactSupport {
                 }
                 throw new Error(errorMessage);
             }
-            
+
             // Handle success
             const responseData = await response.json();
             console.log('[ContactSupport] Success:', responseData);
-            
+
             // Reset form
             subjectEl.value = '';
             messageEl.value = '';
-            
+
             // Show success message
             showToast('Pesan Anda telah terkirim. Kami akan segera menghubungi Anda!', 'success');
-            
+
             // Close modal after a short delay
             setTimeout(() => {
                 this.closeModal();
             }, 1500);
-            
+
         } catch (error) {
             console.error('[ContactSupport] Submission error:', error);
             const errorMessage = error.message || 'Terjadi kesalahan saat mengirim pesan. Silakan coba lagi.';

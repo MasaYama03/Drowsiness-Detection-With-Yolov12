@@ -16,7 +16,7 @@ const AppState = {
 const API_BASE_URL = window.CONFIG?.API_BASE_URL || 'http://localhost:5050/api';
 
 // Initialize application
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     initializeApp();
     setupEventListeners();
 });
@@ -29,7 +29,7 @@ function initializeApp() {
     // Check if user is logged in (from localStorage)
     const token = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
-    
+
     if (token && userData) {
         AppState.currentUser = JSON.parse(userData);
         AppState.isAuthenticated = true;
@@ -47,15 +47,15 @@ function setupEventListeners() {
     // Mobile menu toggle
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
     const mobileMenu = document.getElementById('mobile-menu');
-    
+
     if (mobileMenuBtn && mobileMenu) {
-        mobileMenuBtn.addEventListener('click', function() {
+        mobileMenuBtn.addEventListener('click', function () {
             mobileMenu.classList.toggle('hidden');
         });
     }
-    
+
     // Close mobile menu when clicking outside
-    document.addEventListener('click', function(event) {
+    document.addEventListener('click', function (event) {
         if (mobileMenu && !mobileMenu.contains(event.target) && !mobileMenuBtn.contains(event.target)) {
             mobileMenu.classList.add('hidden');
         }
@@ -114,7 +114,7 @@ const PAGE_SCRIPTS = {
  */
 async function showPage(pageId) {
     console.log('Navigating to page:', pageId);
-    
+
     // End current session if leaving detection page
     if (AppState.currentPage === 'detection' && pageId !== 'detection') {
         if (typeof endSessionOnNavigate === 'function') {
@@ -123,20 +123,20 @@ async function showPage(pageId) {
             console.error('endSessionOnNavigate function not found. Was detection.js loaded?');
         }
     }
-    
+
     // Hide all page sections
     const pageSections = document.querySelectorAll('[id$="-page"]');
     pageSections.forEach(section => section.classList.add('hidden'));
-    
+
     // Show selected page
     const targetPage = document.getElementById(`${pageId}-page`);
     if (targetPage) {
         targetPage.classList.remove('hidden');
         AppState.currentPage = pageId;
-        
+
         // Update active navigation
         updateNavigation(pageId);
-        
+
         // Load page-specific content if the function exists in the global scope
         const pageFunction = window[PAGE_SCRIPTS[pageId]];
         if (typeof pageFunction === 'function') {
@@ -157,7 +157,7 @@ async function showPage(pageId) {
             showPage('dashboard');
         }
     }
-    
+
     // Close mobile menu if open
     const mobileMenu = document.getElementById('mobile-menu');
     if (mobileMenu) {
@@ -174,7 +174,7 @@ function updateNavigation(activePage) {
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
     });
-    
+
     // Add active class to current page link
     const activeLink = document.querySelector(`[onclick="showPage('${activePage}')"]`);
     if (activeLink) {
@@ -189,22 +189,22 @@ function logout() {
     // Clear authentication data
     localStorage.removeItem('authToken');
     localStorage.removeItem('userData');
-    
+
     // Reset application state
     AppState.currentUser = null;
     AppState.isAuthenticated = false;
     AppState.detectionActive = false;
     AppState.alarmActive = false;
-    
+
     // Stop any active detection
     if (AppState.detectionActive) {
         stopDetection();
     }
-    
+
     // Show authentication section
     showAuthSection();
     showLogin();
-    
+
     // Show logout message
     showToast('Logged out successfully', 'success');
 }
@@ -231,11 +231,11 @@ function hideLoading() {
  */
 function showToast(message, type = 'info', duration = 3000) {
     const toastContainer = document.getElementById('toast-container');
-    
+
     // Create toast element
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    
+
     // Toast content
     toast.innerHTML = `
         <div class="flex items-center justify-between">
@@ -248,10 +248,10 @@ function showToast(message, type = 'info', duration = 3000) {
             </button>
         </div>
     `;
-    
+
     // Add to container
     toastContainer.appendChild(toast);
-    
+
     // Auto remove after duration
     setTimeout(() => {
         if (toast.parentElement) {
@@ -266,11 +266,11 @@ function showToast(message, type = 'info', duration = 3000) {
  * @returns {string} Font Awesome icon class
  */
 function getToastIcon(type) {
-    switch(type) {
+    switch (type) {
         case 'success': return 'fa-check-circle';
         case 'error': return 'fa-exclamation-circle';
         case 'warning': return 'fa-exclamation-triangle';
-        case 'info': 
+        case 'info':
         default: return 'fa-info-circle';
     }
 }
@@ -284,18 +284,18 @@ function getToastIcon(type) {
 async function apiRequest(endpoint, options = {}) {
     const token = localStorage.getItem('authToken');
     console.log('Token from localStorage:', token); // Debug log
-    
+
     // Create headers with authorization if token exists
     const headers = {};
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     // Don't set Content-Type for FormData - let the browser set it with the correct boundary
     if (!(options.body instanceof FormData)) {
         headers['Content-Type'] = 'application/json';
     }
-    
+
     const finalOptions = {
         ...options,
         headers: {
@@ -303,12 +303,12 @@ async function apiRequest(endpoint, options = {}) {
             ...options.headers
         }
     };
-    
+
     try {
         console.log(`Making API request to: ${API_BASE_URL}${endpoint}`); // Debug log
         const response = await fetch(`${API_BASE_URL}${endpoint}`, finalOptions);
         console.log(`API response status: ${response.status}`); // Debug log
-        
+
         // Handle unauthorized
         if (response.status === 401) {
             // For login endpoint, don't logout and show the specific error message
@@ -319,13 +319,13 @@ async function apiRequest(endpoint, options = {}) {
             logout();
             throw new Error('Unauthorized');
         }
-        
+
         if (!response.ok) {
             const error = new Error('API request failed');
             error.status = response.status;
             try {
                 // Attach the full JSON error response to the error object
-                error.body = await response.json(); 
+                error.body = await response.json();
             } catch (e) {
                 error.body = { error: 'Could not parse error response.' };
             }
@@ -357,18 +357,18 @@ async function apiRequest(endpoint, options = {}) {
             error.message = userMessage;
             throw error; // Throw the enriched error object
         }
-        
+
         const data = await response.json();
-        
+
         return data;
     } catch (error) {
         console.error('API Request Error:', error);
-        
+
         // Handle network errors with user-friendly messages
         if (error.name === 'TypeError' && error.message.includes('fetch')) {
             throw new Error('Unable to connect to server. Please check your internet connection and try again.');
         }
-        
+
         throw error;
     }
 }
@@ -381,12 +381,12 @@ async function apiRequest(endpoint, options = {}) {
 function formatDate(date) {
     // Debug: log the input and output
     console.log('formatDate input:', date);
-    
+
     const dateObj = new Date(date);
     console.log('Date object:', dateObj);
     console.log('UTC time:', dateObj.toUTCString());
     console.log('Local time:', dateObj.toString());
-    
+
     const formatted = dateObj.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -396,7 +396,7 @@ function formatDate(date) {
         hour12: true,
         timeZone: 'Asia/Jakarta'
     });
-    
+
     console.log('Formatted result:', formatted);
     return formatted;
 }
@@ -410,7 +410,7 @@ function formatDuration(seconds) {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = parseFloat((seconds % 60).toFixed(2));
-    
+
     if (hours > 0) {
         return `${hours}h ${minutes}m ${secs}s`;
     } else if (minutes > 0) {
@@ -457,19 +457,19 @@ function validatePassword(password) {
     if (password.length < 8) {
         return { isValid: false, message: 'Password must be at least 8 characters long' };
     }
-    
+
     if (!/(?=.*[a-z])/.test(password)) {
         return { isValid: false, message: 'Password must contain at least one lowercase letter' };
     }
-    
+
     if (!/(?=.*[A-Z])/.test(password)) {
         return { isValid: false, message: 'Password must contain at least one uppercase letter' };
     }
-    
+
     if (!/(?=.*\d)/.test(password)) {
         return { isValid: false, message: 'Password must contain at least one number' };
     }
-    
+
     return { isValid: true, message: 'Password is strong' };
 }
 
@@ -477,18 +477,18 @@ function validatePassword(password) {
 function endCurrentSession() {
     if (AppState.currentSessionId) {
         console.log(`Ending session ${AppState.currentSessionId} due to page navigation`);
-        
+
         // Use sendBeacon for reliable delivery during page unload
         const data = {
             session_id: AppState.currentSessionId,
             jwt: localStorage.getItem('authToken')
         };
-        
+
         navigator.sendBeacon(
             `${API_BASE_URL}/api/detection/end-session`,
             new Blob([JSON.stringify(data)], { type: 'application/json' })
         );
-        
+
         // Clear session ID
         AppState.currentSessionId = null;
         localStorage.removeItem('currentSessionId');
@@ -567,7 +567,7 @@ function loadHistoryPage() {
 
 function loadSettingsPage() {
     const settingsContainer = document.getElementById('settings-page');
-    
+
     settingsContainer.innerHTML = `
         <div class="fade-in">
             <!-- Settings Header Section -->
@@ -700,7 +700,7 @@ window.addEventListener('beforeunload', endCurrentSession);
 window.addEventListener('pagehide', endCurrentSession);
 
 // Handle navigation within SPA
-window.addEventListener('popstate', function() {
+window.addEventListener('popstate', function () {
     if (window.location.pathname !== '/detection' && AppState.currentSessionId) {
         endCurrentSession();
     }

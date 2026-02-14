@@ -1,15 +1,18 @@
-// Central configuration file - edit here to change API port
+// Central configuration file - edit here to change API URL
+// Production: Change RAILWAY_BE_URL below to your Railway backend URL
+// Development: Uses localhost:5050 as fallback
+const RAILWAY_BE_URL = ''; // e.g. 'https://your-app-name.up.railway.app'
+
 const CONFIG = {
-    API_PORT: 5050,
-    API_HOST: 'localhost',
     get API_BASE_URL() {
-        return `http://${this.API_HOST}:${this.API_PORT}/api`;
+        const baseUrl = RAILWAY_BE_URL || 'http://localhost:5050';
+        return `${baseUrl}/api`;
     },
     get ASSET_URL() {
-        return `http://${this.API_HOST}:${this.API_PORT}`;
+        return RAILWAY_BE_URL || 'http://localhost:5050';
     },
     get AUDIO_BASE_URL() {
-        return `http://${this.API_HOST}:5050`;
+        return RAILWAY_BE_URL || 'http://localhost:5050';
     }
 };
 

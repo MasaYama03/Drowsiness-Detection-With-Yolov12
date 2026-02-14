@@ -6,19 +6,19 @@
  */
 async function _loadSettings() {
     console.log('Loading settings...');
-    
+
     const settingsContainer = document.getElementById('settings-page');
     if (!settingsContainer) {
         console.error('Settings container not found!');
         hideLoading();
         return;
     }
-    
+
     showLoading();
-    
+
     // Clear existing content to prevent duplicates
     settingsContainer.innerHTML = '';
-    
+
     // Fetch user profile data with better error handling
     let profile = {};
     try {
@@ -27,7 +27,7 @@ async function _loadSettings() {
             console.warn('API request failed, trying fallback methods:', error);
             return null;
         });
-        
+
         if (response) {
             profile = response.profile || response;
             console.log('Profile data loaded from API:', profile);
@@ -55,24 +55,24 @@ async function _loadSettings() {
         // Ensure we have at least an empty object
         profile = {};
     }
-    
+
     // Also try to get current user from AppState
     if ((!profile || !profile.name) && AppState.currentUser) {
         profile = { ...profile, ...AppState.currentUser };
     }
-    
+
     // Handle profile picture URL
-    let profilePictureUrl = `http://localhost:5050/default-avatar.png`;
+    let profilePictureUrl = `${CONFIG.ASSET_URL}/default-avatar.png`;
     console.log('Profile data:', profile); // Debug profile data
     if (profile.profile_photo || profile.profilePhoto) {
         const photoFilename = profile.profile_photo || profile.profilePhoto;
         console.log('Photo filename:', photoFilename); // Debug filename
         if (photoFilename && photoFilename !== 'default-avatar.png') {
-            profilePictureUrl = `http://localhost:5050/uploads/profile_pictures/${photoFilename}`;
+            profilePictureUrl = `${CONFIG.ASSET_URL}/uploads/profile_pictures/${photoFilename}`;
         }
     }
     console.log('Final profile picture URL:', profilePictureUrl); // Debug final URL
-    
+
     // Ensure profile has required fields and handle null values
     profile = {
         name: profile.name || profile.fullName || profile.full_name || '',
@@ -82,12 +82,12 @@ async function _loadSettings() {
         profile_picture: profilePictureUrl,
         ...profile
     };
-    
+
     // Additional cleanup for phone field specifically
     if (profile.phone === 'null' || profile.phone === null || profile.phone === undefined) {
         profile.phone = '';
     }
-    
+
     // Render settings page with original design
     settingsContainer.innerHTML = `
         <div class="fade-in">
@@ -330,7 +330,7 @@ async function _loadSettings() {
     </div>
 </div>
 `;
-    
+
     hideLoading();
 }
 
@@ -363,10 +363,10 @@ function showToast(message, type = 'info', duration = 3000) {
         box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         animation: slideIn 0.3s ease-out;
     `;
-    
+
     toast.textContent = message;
     container.appendChild(toast);
-    
+
     // Auto remove after duration
     if (duration > 0) {
         setTimeout(() => {
@@ -374,7 +374,7 @@ function showToast(message, type = 'info', duration = 3000) {
             setTimeout(() => toast.remove(), 300);
         }, duration);
     }
-    
+
     return toast;
 }
 
@@ -400,7 +400,7 @@ function showContactSupport() {
         window.showContactSupportModal();
         return false;
     }
-    
+
     // Try to initialize contact support
     if (typeof initContactSupport === 'function') {
         console.log('[Settings] Initializing contact support');
@@ -410,7 +410,7 @@ function showContactSupport() {
             return false;
         }
     }
-    
+
     // Fallback to a simple alert
     console.warn('[Settings] Could not initialize contact support modal');
     alert('Silakan hubungi kami di: support@example.com');
@@ -466,12 +466,12 @@ function sendSupportMessage() {
     const subject = document.getElementById('support-subject').value;
     const message = document.getElementById('support-message').value;
     const priority = document.getElementById('support-priority').value;
-    
+
     if (!subject || !message) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
-    
+
     // Simulate sending message
     showToast('Support message sent successfully! We will get back to you soon.', 'success');
     document.querySelector('.modal-overlay').remove();
@@ -482,9 +482,9 @@ function toggleProfileEdit() {
     const profileFields = document.querySelectorAll('.profile-field');
     const editBtn = document.getElementById('edit-profile-btn');
     const profileActions = document.getElementById('profile-actions');
-    
+
     const isEditing = !profileFields[0].disabled;
-    
+
     if (isEditing) {
         // Cancel editing - reload to reset values
         profileFields.forEach(field => field.disabled = true);
@@ -505,12 +505,12 @@ function cancelProfileEdit() {
 
 async function uploadProfilePicture(file) {
     if (!file) return;
-    
+
     showLoading();
     try {
         const formData = new FormData();
         formData.append('file', file);
-        
+
         const response = await fetch(`${API_BASE_URL}/settings/profile-picture`, {
             method: 'POST',
             headers: {
@@ -518,13 +518,13 @@ async function uploadProfilePicture(file) {
             },
             body: formData
         });
-        
+
         if (!response.ok) throw new Error('Upload failed');
-        
+
         const result = await response.json();
         console.log('Upload response:', result); // Debug log
         showToast('Profile picture updated successfully', 'success');
-        
+
         // Update localStorage with new profile photo
         const userData = localStorage.getItem('userData');
         if (userData) {
@@ -533,40 +533,40 @@ async function uploadProfilePicture(file) {
             localStorage.setItem('userData', JSON.stringify(userProfile));
             console.log('Updated localStorage with new profile photo:', result.profilePhoto);
         }
-        
+
         // Also update AppState if it exists
         if (AppState && AppState.currentUser) {
             AppState.currentUser.profile_photo = result.profilePhoto;
             console.log('Updated AppState with new profile photo');
         }
-        
+
         // Update the image
         const profileImg = document.getElementById('profile-picture');
         console.log('Profile image element:', profileImg); // Debug log
         console.log('Upload result:', result); // Debug the full response
         if (profileImg) {
-            const newImageUrl = `http://localhost:5050/uploads/profile_pictures/${result.profilePhoto}?t=${Date.now()}`;
+            const newImageUrl = `${CONFIG.ASSET_URL}/uploads/profile_pictures/${result.profilePhoto}?t=${Date.now()}`;
             console.log('Setting image src to:', newImageUrl); // Debug log
             profileImg.src = newImageUrl;
-            
+
             // Also update the fallback div to hide it
             const fallbackDiv = profileImg.nextElementSibling;
             if (fallbackDiv) {
                 fallbackDiv.style.display = 'none';
                 profileImg.style.display = 'block';
             }
-            
+
             // Force image reload
-            profileImg.onload = function() {
+            profileImg.onload = function () {
                 console.log('Image loaded successfully');
             };
-            profileImg.onerror = function() {
+            profileImg.onerror = function () {
                 console.error('Failed to load image:', newImageUrl);
             };
         } else {
             console.error('Profile image element not found!');
         }
-        
+
     } catch (error) {
         console.error('Error uploading profile picture:', error);
         showToast('Failed to upload profile picture', 'error');
@@ -615,10 +615,10 @@ async function saveDetectionSettings() {
         volume: parseFloat(document.getElementById('settings-volume').value),
         sensitivity: parseFloat(document.getElementById('detection-sensitivity').value)
     };
-    
+
     // Save to localStorage immediately for better UX
     localStorage.setItem('detectionSettings', JSON.stringify(settings));
-    
+
     try {
         showLoading();
         await apiRequest('/settings/alarm', {
@@ -644,9 +644,9 @@ async function exportUserData() {
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             }
         });
-        
+
         if (!response.ok) throw new Error('Export failed');
-        
+
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -656,7 +656,7 @@ async function exportUserData() {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        
+
         showToast('Data exported successfully', 'success');
     } catch (error) {
         console.error('Error exporting data:', error);
@@ -722,7 +722,7 @@ function showClearHistoryConfirmation() {
             </div>
         </div>
     `;
-    
+
     // Add gray overlay background
     popup.style.cssText = `
         position: fixed;
@@ -734,14 +734,14 @@ function showClearHistoryConfirmation() {
         z-index: 1000;
         animation: fadeIn 0.3s ease;
     `;
-    
+
     // Close on overlay click
-    popup.addEventListener('click', function(e) {
+    popup.addEventListener('click', function (e) {
         if (e.target === popup) {
             closeClearHistoryConfirmation();
         }
     });
-    
+
     document.body.appendChild(popup);
 }
 
@@ -754,7 +754,7 @@ function closeClearHistoryConfirmation() {
 
 async function confirmClearHistory() {
     closeClearHistoryConfirmation();
-    
+
     try {
         showLoading();
         await apiRequest('/settings/clear-history', {
@@ -773,26 +773,26 @@ async function deleteAccount() {
     if (!confirm('Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.')) {
         return;
     }
-    
+
     const finalConfirm = prompt('Type "DELETE" to confirm account deletion:');
     if (finalConfirm !== 'DELETE') {
         showToast('Account deletion cancelled', 'info');
         return;
     }
-    
+
     try {
         showLoading();
         await apiRequest('/settings/delete-account', {
             method: 'DELETE'
         });
-        
+
         // Clear local storage and redirect to login
         localStorage.clear();
         showToast('Account deleted successfully', 'info');
         setTimeout(() => {
             window.location.reload();
         }, 2000);
-        
+
     } catch (error) {
         console.error('Error deleting account:', error);
         showToast('Failed to delete account', 'error');
@@ -830,7 +830,7 @@ function showDeveloperProfile() {
             
             <!-- Developer Photo -->
             <div style="margin-bottom: 24px; display: flex; justify-content: center; align-items: center;">
-                <img src="http://localhost:5050/profile_owner/Masahiro.jpg" alt="Masahiro Gerarudo Yamazaki" 
+                <img src="${CONFIG.ASSET_URL}/profile_owner/Masahiro.jpg" alt="Masahiro Gerarudo Yamazaki" 
                      style="width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 4px solid #667eea; box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3); transition: all 0.3s ease; display: block;" 
                      onmouseover="this.style.transform='scale(1.05)';"
                      onmouseout="this.style.transform='scale(1)';"
@@ -874,7 +874,7 @@ function showDeveloperProfile() {
             </div>
         </div>
     `;
-    
+
     // Add overlay background
     developerBar.style.cssText = `
         position: fixed;
@@ -886,14 +886,14 @@ function showDeveloperProfile() {
         z-index: 1000;
         animation: fadeIn 0.3s ease;
     `;
-    
+
     // Close on overlay click
-    developerBar.addEventListener('click', function(e) {
+    developerBar.addEventListener('click', function (e) {
         if (e.target === developerBar) {
             developerBar.remove();
         }
     });
-    
+
     document.body.appendChild(developerBar);
 }
 
@@ -901,7 +901,7 @@ function showContactDeveloper() {
     // Close developer profile modal
     const existingModal = document.querySelector('.modal-overlay');
     if (existingModal) existingModal.remove();
-    
+
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
     modal.innerHTML = `
@@ -946,13 +946,13 @@ async function sendSupportMessage() {
     const subject = document.getElementById('support-subject').value.trim();
     const message = document.getElementById('support-message').value.trim();
     const priority = document.querySelector('.priority-option.selected')?.classList.contains('low') ? 'low' :
-                    document.querySelector('.priority-option.selected')?.classList.contains('high') ? 'high' : 'medium';
-    
+        document.querySelector('.priority-option.selected')?.classList.contains('high') ? 'high' : 'medium';
+
     if (!category || !subject || !message) {
         showToast('Please fill in all required fields', 'error');
         return;
     }
-    
+
     try {
         showLoading();
         // Get user profile data to include in the email
@@ -963,7 +963,7 @@ async function sendSupportMessage() {
         } catch (e) {
             console.warn('Could not fetch user profile:', e);
         }
-        
+
         // Format user info for the email
         const userInfo = [
             `Name: ${userProfile.full_name || userProfile.name || 'Not provided'}`,
@@ -972,9 +972,9 @@ async function sendSupportMessage() {
             `Account Created: ${userProfile.created_at ? new Date(userProfile.created_at).toLocaleDateString() : 'N/A'}`,
             '\n--- USER MESSAGE ---\n'
         ].join('\n');
-        
+
         const fullMessage = userInfo + message;
-        
+
         await apiRequest('/api/contact/support', {
             method: 'POST',
             body: JSON.stringify({
@@ -985,7 +985,7 @@ async function sendSupportMessage() {
                 user_email: userProfile.email || ''
             })
         });
-        
+
         document.querySelector('.modal-overlay').remove();
         showToast('Your support request has been sent successfully!', 'success');
     } catch (error) {
@@ -1000,19 +1000,19 @@ async function sendDeveloperMessage() {
     const subject = document.getElementById('dev-subject').value;
     const message = document.getElementById('dev-message').value;
     const email = document.getElementById('dev-email').value;
-    
+
     if (!subject || !message) {
         showToast('Please fill in all fields', 'error');
         return;
     }
-    
+
     try {
         showLoading();
         await apiRequest('/settings/contact-developer', {
             method: 'POST',
             body: JSON.stringify({ subject, message, email })
         });
-        
+
         document.querySelector('.modal-overlay').remove();
         showToast('Message sent to developer successfully', 'success');
     } catch (error) {
@@ -1032,33 +1032,33 @@ function openDatePicker() {
 }
 
 // Handle profile form submission
-document.addEventListener('DOMContentLoaded', function() {
-    document.addEventListener('submit', async function(e) {
+document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('submit', async function (e) {
         if (e.target.id === 'profile-form') {
             e.preventDefault();
-            
+
             const profileData = {
                 name: document.getElementById('profile-name').value,
                 email: document.getElementById('profile-email').value,
                 phone: document.getElementById('profile-phone').value,
                 date_of_birth: document.getElementById('profile-dob').value
             };
-            
+
             try {
                 showLoading();
                 const response = await apiRequest('/settings/profile', {
                     method: 'PUT',
                     body: JSON.stringify(profileData)
                 });
-                
+
                 showToast('Profile updated successfully', 'success');
-                
+
                 // Update UI fields with the response data
                 const profileFields = document.querySelectorAll('.profile-field');
                 profileFields.forEach(field => field.disabled = true);
                 document.getElementById('edit-profile-btn').innerHTML = '<i class="fas fa-edit mr-2"></i>Edit Profile';
                 document.getElementById('profile-actions').style.display = 'none';
-                
+
                 // Update the form fields with the response data
                 if (response && response.user) {
                     const user = response.user;
@@ -1069,15 +1069,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         const dob = new Date(user.date_of_birth);
                         document.getElementById('profile-dob').value = dob.toISOString().split('T')[0];
                     }
-                    
+
                     // Update the display values safely
                     const phoneDisplay = document.querySelector('.phone-display');
                     const dobDisplay = document.querySelector('.dob-display');
-                    
+
                     if (phoneDisplay) {
                         phoneDisplay.textContent = user.phone || 'Not set';
                     }
-                    
+
                     if (dobDisplay) {
                         if (user.date_of_birth) {
                             try {
@@ -1095,7 +1095,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             dobDisplay.textContent = 'Not set';
                         }
                     }
-                    
+
                     // Update localStorage with the new data
                     const userData = JSON.parse(localStorage.getItem('userData') || '{}');
                     userData.phone = user.phone;
@@ -1109,26 +1109,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 hideLoading();
             }
         }
-        
+
         if (e.target.id === 'password-form') {
             e.preventDefault();
-            
+
             const currentPassword = document.getElementById('current-password').value;
             const newPassword = document.getElementById('new-password').value;
             const confirmPassword = document.getElementById('confirm-password').value;
-            
+
             if (newPassword !== confirmPassword) {
                 showToast('New passwords do not match', 'error');
                 return;
             }
-            
+
             // Validate password strength
             const passwordValidation = validatePassword(newPassword);
             if (!passwordValidation.isValid) {
                 showToast(passwordValidation.message, 'error');
                 return;
             }
-            
+
             try {
                 showLoading();
                 await apiRequest('/settings/password', {
@@ -1138,7 +1138,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         new_password: newPassword
                     })
                 });
-                
+
                 showToast('Password changed successfully', 'success');
                 e.target.reset();
             } catch (error) {
@@ -1166,49 +1166,49 @@ async function loadDetectionSettings() {
     // Function to apply settings to the UI
     function applySettings(settings) {
         if (!settings) return;
-        
+
         console.log('Applying settings:', settings);
-        
+
         // Ensure we have valid values with proper type conversion
         // Handle both old and new API response formats
         const settingsWithDefaults = {
             triggerTime: settings.triggerTime ? parseInt(settings.triggerTime) : 5,
             // Check both 'volume' and 'alarmVolume' keys
-            volume: settings.volume !== undefined ? parseFloat(settings.volume) : 
-                   (settings.alarmVolume !== undefined ? parseFloat(settings.alarmVolume) : 0.8),
+            volume: settings.volume !== undefined ? parseFloat(settings.volume) :
+                (settings.alarmVolume !== undefined ? parseFloat(settings.alarmVolume) : 0.8),
             // Check both 'sensitivity' and 'detectionSensitivity' keys
-            sensitivity: settings.sensitivity !== undefined ? parseFloat(settings.sensitivity) : 
-                       (settings.detectionSensitivity !== undefined ? parseFloat(settings.detectionSensitivity) : 0.6)
+            sensitivity: settings.sensitivity !== undefined ? parseFloat(settings.sensitivity) :
+                (settings.detectionSensitivity !== undefined ? parseFloat(settings.detectionSensitivity) : 0.6)
         };
-        
+
         console.log('Final settings with defaults:', settingsWithDefaults);
-        
+
         // Update input values
         const triggerInput = document.getElementById('settings-trigger-time');
         const volumeInput = document.getElementById('settings-volume');
         const sensitivityInput = document.getElementById('detection-sensitivity');
-        
+
         if (triggerInput) {
             triggerInput.value = settingsWithDefaults.triggerTime;
             updateSettingsTriggerTime(settingsWithDefaults.triggerTime);
         }
-        
+
         if (volumeInput) {
             volumeInput.value = settingsWithDefaults.volume;
             updateSettingsVolume(settingsWithDefaults.volume);
         }
-        
+
         if (sensitivityInput) {
             sensitivityInput.value = settingsWithDefaults.sensitivity;
             updateDetectionSensitivity(settingsWithDefaults.sensitivity);
         }
-        
+
         console.log('Settings applied to DOM');
     }
-    
+
     try {
         console.log('Loading detection settings...');
-        
+
         // First try to get settings from localStorage
         try {
             const savedSettings = localStorage.getItem('detectionSettings');
@@ -1234,7 +1234,7 @@ async function loadDetectionSettings() {
                 sensitivity: 0.6
             });
         }
-        
+
         // Try to fetch from API in the background
         (async () => {
             try {
@@ -1248,7 +1248,7 @@ async function loadDetectionSettings() {
                 console.warn('Failed to fetch settings from API, using localStorage values:', apiError);
             }
         })();
-        
+
     } catch (error) {
         console.error('Unexpected error in loadDetectionSettings:', error);
         // Set default values on unexpected error
@@ -1268,7 +1268,7 @@ async function loadSettings() {
             console.warn('Error loading profile, continuing with default UI...', error);
             // Continue even if profile loading fails
         }
-        
+
         // Load detection settings after a small delay
         setTimeout(async () => {
             try {
@@ -1315,7 +1315,7 @@ let activePopups = new Set();
 let hoverTimeouts = new Map();
 
 function getPopupContent(infoType) {
-    switch(infoType) {
+    switch (infoType) {
         case 'trigger-info':
             return {
                 title: 'Trigger Time Information',
@@ -1323,7 +1323,7 @@ function getPopupContent(infoType) {
             };
         case 'volume-info':
             return {
-                title: 'Volume Information', 
+                title: 'Volume Information',
                 content: 'Controls how loud the drowsiness alarm will be. Set to 0% to turn off sound, or higher values for louder alerts. Recommended: 60-80% for effective wake-up alerts.'
             };
         case 'sensitivity-info':
@@ -1340,13 +1340,13 @@ function showHoverPopup(infoType, buttonElement) {
         clearTimeout(hoverTimeouts.get(infoType));
         hoverTimeouts.delete(infoType);
     }
-    
+
     // Don't show hover popup if it's already pinned
     if (activePopups.has(infoType)) return;
-    
+
     const { title, content } = getPopupContent(infoType);
     const rect = buttonElement.getBoundingClientRect();
-    
+
     const popup = document.createElement('div');
     popup.id = `hover-popup-${infoType}`;
     popup.className = 'hover-info-popup';
@@ -1365,14 +1365,14 @@ function showHoverPopup(infoType, buttonElement) {
             <p class="text-gray-300 text-xs leading-relaxed" style="text-align: justify;">${content}</p>
         </div>
     `;
-    
+
     document.body.appendChild(popup);
 }
 
 function hideHoverPopup(infoType) {
     // Don't hide if it's pinned
     if (activePopups.has(infoType)) return;
-    
+
     // Set timeout to hide after a short delay
     const timeout = setTimeout(() => {
         const popup = document.getElementById(`hover-popup-${infoType}`);
@@ -1380,7 +1380,7 @@ function hideHoverPopup(infoType) {
             popup.remove();
         }
     }, 100);
-    
+
     hoverTimeouts.set(infoType, timeout);
 }
 
@@ -1390,15 +1390,15 @@ function pinInfoPopup(infoType) {
     if (hoverPopup) {
         hoverPopup.remove();
     }
-    
+
     // Clear hover timeout
     if (hoverTimeouts.has(infoType)) {
         clearTimeout(hoverTimeouts.get(infoType));
         hoverTimeouts.delete(infoType);
     }
-    
+
     const { title, content } = getPopupContent(infoType);
-    
+
     const popup = document.createElement('div');
     popup.className = 'info-popup-overlay';
     popup.innerHTML = `
@@ -1435,7 +1435,7 @@ function pinInfoPopup(infoType) {
             </div>
         </div>
     `;
-    
+
     // Add gray overlay background
     popup.style.cssText = `
         position: fixed;
@@ -1447,14 +1447,14 @@ function pinInfoPopup(infoType) {
         z-index: 1000;
         animation: fadeIn 0.3s ease;
     `;
-    
+
     // Close on overlay click
-    popup.addEventListener('click', function(e) {
+    popup.addEventListener('click', function (e) {
         if (e.target === popup) {
             closePinnedPopup(infoType);
         }
     });
-    
+
     activePopups.add(infoType);
     document.body.appendChild(popup);
 }
