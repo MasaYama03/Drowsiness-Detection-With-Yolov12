@@ -39,6 +39,20 @@ from sqlalchemy import func
 # Initialize Flask app
 app = Flask(__name__)
 
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "https://drowsiness-detection-with-yolov12.vercel.app"
+        ]
+    }
+})
+
+CORS(app,
+     supports_credentials=True,
+     resources={r"/api/*": {
+         "origins": "https://drowsiness-detection-with-yolov12.vercel.app"
+     }})
+
 # Configuration
 app.config['SECRET_KEY'] = 'your-secret-key-here'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv("DATABASE_URL")
