@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# Environment
+.env
+
+# Model files (onnx not used)
+model/*.onnx
+
+# Uploads & processed files
+uploads/
+processed/
+
+# OS files
+.DS_Store
+Thumbs.db
