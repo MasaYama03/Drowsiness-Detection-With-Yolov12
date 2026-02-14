@@ -151,7 +151,8 @@ except Exception as e:
         if MODEL_PATH.endswith('.pt'):
             # Try direct torch loading first
             try:
-                model = torch.load(MODEL_PATH, map_location='cpu')
+                # weights_only=False required for PyTorch 2.6+ with custom classes
+                model = torch.load(MODEL_PATH, map_location='cpu', weights_only=False)
                 print("Model loaded with torch.load")
             except:
                 # Try YOLO with force_reload
