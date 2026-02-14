@@ -115,6 +115,14 @@ MODEL_PATH = os.getenv('MODEL_PATH', os.path.join(os.path.dirname(os.path.abspat
 
 # Load YOLO model
 try:
+    print(f"DEBUG: Current working directory: {os.getcwd()}")
+    print(f"DEBUG: MODEL_PATH is: {MODEL_PATH}")
+    model_dir = os.path.dirname(MODEL_PATH)
+    if os.path.exists(model_dir):
+        print(f"DEBUG: Listing directory {model_dir}: {os.listdir(model_dir)}")
+    else:
+        print(f"DEBUG: Directory {model_dir} does not exist!")
+
     # Try loading with explicit task specification to avoid compatibility issues
     model = YOLO(MODEL_PATH, task='detect')
     print("Model loaded successfully")
@@ -1425,12 +1433,7 @@ def analyze_file():
 def stop_detection_session(session_id):
     """Stop detection session and save to database - DETECTION PAGE"""
     if request.method == 'OPTIONS':
-        response = jsonify({'status': 'success'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8080')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
+        return jsonify({'status': 'success'})
     db = None
     try:
         user_id = int(get_jwt_identity())
@@ -1503,12 +1506,7 @@ def stop_detection_session(session_id):
 def update_detection_session(session_id):
     """Update session stats in real-time"""
     if request.method == 'OPTIONS':
-        response = jsonify({'status': 'success'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8080')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
+        return jsonify({'status': 'success'})
     
     print(f"\n=== UPDATE SESSION REQUEST ===")
     print(f"Session ID: {session_id}")
@@ -1811,12 +1809,7 @@ def download_processed_video():
     
     # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8080')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response, 200
+        return jsonify({'status': 'ok'})
     
     try:
         print("Processing GET request for video download")  # Debug log
