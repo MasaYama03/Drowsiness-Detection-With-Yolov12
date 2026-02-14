@@ -57,10 +57,23 @@ jwt = JWTManager(app)
 
 # Configure CORS with specific settings - use CORS_ORIGINS env var for production
 # Configure CORS with specific settings
-# Get CORS origins from env var or default to localhost and Vercel app
-default_origins = "http://localhost:8080,http://127.0.0.1:8080,https://drowsiness-detection-with-yolov12.vercel.app"
-cors_origins_str = os.getenv('CORS_ORIGINS', default_origins)
-cors_origins = [origin.strip() for origin in cors_origins_str.split(',')]
+# Get CORS origins from env var AND force include defaults
+env_origins = os.getenv('CORS_ORIGINS', '')
+cors_origins_list = [o.strip() for o in env_origins.split(',') if o.strip()]
+
+# Always include these defaults
+defaults = [
+    "http://localhost:8080", 
+    "http://127.0.0.1:8080", 
+    "https://drowsiness-detection-with-yolov12.vercel.app"
+]
+
+for origin in defaults:
+    if origin not in cors_origins_list:
+        cors_origins_list.append(origin)
+
+cors_origins = cors_origins_list
+print(f"DEBUG: Active CORS Origins: {cors_origins}")
 
 CORS(app, 
      resources={
@@ -115,6 +128,13 @@ MODEL_PATH = os.getenv('MODEL_PATH', os.path.join(os.path.dirname(os.path.abspat
 
 # Load YOLO model
 try:
+    print(f"DEBUG: Current working directory: {os.getcwd()}")
+    print(f"DEBUG: MODEL_PATH is: {MODEL_PATH}")
+    model_dir = os.path.dirname(MODEL_PATH)
+    if os.path.exists(model_dir):
+        print(f"DEBUG: Listing directory {model_dir}: {os.listdir(model_dir)}")
+    else:
+        print(f"DEBUG: Directory {model_dir} does not exist!")
     # Try loading with explicit task specification to avoid compatibility issues
     model = YOLO(MODEL_PATH, task='detect')
     print("Model loaded successfully")
@@ -816,14 +836,9 @@ def start_detection_session():
         
         session_id = session.id
 
-        # Initialize camera
-        global camera
-        if camera is None:
-            camera = cv2.VideoCapture(0)
-            if not camera.isOpened():
-                print("--- ERROR: Could not open camera. ---")
-                return jsonify({'error': 'Could not open camera.'}), 500
-        print("Camera initialized successfully.")
+        # Server-side camera removed for cloud deployment
+        # The client (browser) captures frames and sends them to /api/detection/analyze-frame
+        print("Session started. Waiting for client frames.")
         
         # Initialize in-memory session tracking with all required stats
         active_sessions[session_id] = {
@@ -1425,12 +1440,7 @@ def analyze_file():
 def stop_detection_session(session_id):
     """Stop detection session and save to database - DETECTION PAGE"""
     if request.method == 'OPTIONS':
-        response = jsonify({'status': 'success'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8080')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
+        return jsonify({'status': 'success'})
     db = None
     try:
         user_id = int(get_jwt_identity())
@@ -1503,12 +1513,7 @@ def stop_detection_session(session_id):
 def update_detection_session(session_id):
     """Update session stats in real-time"""
     if request.method == 'OPTIONS':
-        response = jsonify({'status': 'success'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8080')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'POST, OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response
+        return jsonify({'status': 'success'})
     
     print(f"\n=== UPDATE SESSION REQUEST ===")
     print(f"Session ID: {session_id}")
@@ -1811,12 +1816,7 @@ def download_processed_video():
     
     # Handle preflight OPTIONS request
     if request.method == 'OPTIONS':
-        response = jsonify({'status': 'ok'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:8080')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET,OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
-        return response, 200
+        return jsonify({'status': 'ok'})
     
     try:
         print("Processing GET request for video download")  # Debug log
