@@ -3,5 +3,5 @@ aptPkgs = ["libglib2.0-0"]
 
 [phases.install]
 cmds = [
-    ". /opt/venv/bin/activate && pip install -r requirements.txt && pip uninstall -y opencv-python && pip install opencv-python-headless==4.8.1.78"
+    "python -m venv --copies /opt/venv && . /opt/venv/bin/activate && pip install -r requirements.txt && pip uninstall -y opencv-python && pip install opencv-python-headless==4.8.1.78"
 ]
