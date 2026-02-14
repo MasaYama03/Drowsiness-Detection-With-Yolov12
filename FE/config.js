@@ -1,7 +1,7 @@
 // Central configuration file - edit here to change API URL
 // Production: Change RAILWAY_BE_URL below to your Railway backend URL
 // Development: Uses localhost:5050 as fallback
-const RAILWAY_BE_URL = ''; // e.g. 'https://your-app-name.up.railway.app'
+const RAILWAY_BE_URL = 'https://drowsiness-detection-with-yolov12-production.up.railway.app';
 
 const CONFIG = {
     get API_BASE_URL() {
