@@ -94,7 +94,7 @@ app.config['UPLOAD_FOLDER'] = 'uploads/detection'
 
 # Derived/auxiliary config values
 app.config['DATABASE_URL'] = app.config.get('SQLALCHEMY_DATABASE_URI')
-app.config['MODEL_PATH'] = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'model', 'best.pt')
+app.config['MODEL_PATH'] = os.getenv('MODEL_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model', 'best.pt'))
 app.config['ALARM_SOUNDS_FOLDER'] = os.path.join(os.path.dirname(__file__), 'uploads', 'alarm_sounds')
 
 # Initialize extensions
@@ -106,7 +106,7 @@ active_sessions = {}
 camera = None
 
 # Model path
-MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'model', 'best.pt')
+MODEL_PATH = os.getenv('MODEL_PATH', os.path.join(os.path.dirname(os.path.abspath(__file__)), 'model', 'best.pt'))
 
 # Load YOLO model
 try:
