@@ -1,3 +1,6 @@
+# Use CPU-only PyTorch (Railway has no GPU, saves ~5GB image size)
+--extra-index-url https://download.pytorch.org/whl/cpu
+
 # Backend Dependencies
 Flask==2.3.3
 Flask-CORS==4.0.0
@@ -8,8 +11,8 @@ Werkzeug==2.3.7
 
 # Computer Vision and AI
 ultralytics==8.2.52
-opencv-python==4.8.1.78
-numpy==1.26.0
+opencv-python-headless==4.8.1.78
+numpy==1.24.3
 Pillow==10.0.1
 torch>=2.0.0
 torchvision>=0.15.0
@@ -21,7 +24,3 @@ uuid==1.30
 
 # Production server
 gunicorn==21.2.0
-
-# Development and testing
-pytest==7.4.2
-pytest-flask==1.2.0
