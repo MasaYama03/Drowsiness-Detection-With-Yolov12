@@ -39,19 +39,7 @@ from sqlalchemy import func
 # Initialize Flask app
 app = Flask(__name__)
 
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "https://drowsiness-detection-with-yolov12.vercel.app"
-        ]
-    }
-})
 
-CORS(app,
-     supports_credentials=True,
-     resources={r"/api/*": {
-         "origins": "https://drowsiness-detection-with-yolov12.vercel.app"
-     }})
 
 # Configuration
 app.config['SECRET_KEY'] = 'your-secret-key-here'
@@ -68,8 +56,11 @@ jwt = JWTManager(app)
 
 
 # Configure CORS with specific settings - use CORS_ORIGINS env var for production
-cors_origins = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080').split(',')
-cors_origins = [origin.strip() for origin in cors_origins]
+# Configure CORS with specific settings
+# Get CORS origins from env var or default to localhost and Vercel app
+default_origins = "http://localhost:8080,http://127.0.0.1:8080,https://drowsiness-detection-with-yolov12.vercel.app"
+cors_origins_str = os.getenv('CORS_ORIGINS', default_origins)
+cors_origins = [origin.strip() for origin in cors_origins_str.split(',')]
 
 CORS(app, 
      resources={

@@ -41,9 +41,9 @@ window.addEventListener('beforeunload', (event) => {
 
 async function loadDetection() {
     const detectionContainer = document.getElementById('detection-page');
-    
+
     showLoading();
-    
+
     try {
         // Fetch user alarm settings
         // Connects to: BE/api_database.py - /settings/alarm endpoint
@@ -54,10 +54,10 @@ async function loadDetection() {
             console.warn('Could not load alarm settings, using defaults:', error);
             // Use default settings
         }
-        
+
         // Load available alarm sounds
         // await loadDetectionAlarmSounds();
-        
+
         detectionContainer.innerHTML = `
             <div class="fade-in">
                 <!-- Detection Header Section -->
@@ -300,9 +300,9 @@ async function loadDetection() {
                 </div>
             </div>
         `;
-        
+
         initializeSessionStats();
-        
+
     } catch (error) {
         console.error('Error loading detection page:', error);
         showToast('Failed to load detection settings', 'error');
@@ -321,14 +321,14 @@ function switchDetectionMode(mode) {
         tab.classList.remove('active', 'border-indigo-500', 'text-indigo-600');
         tab.classList.add('border-transparent', 'text-gray-500');
     });
-    
+
     document.getElementById(`${mode}-tab`).classList.add('active', 'border-indigo-500', 'text-indigo-600');
     document.getElementById(`${mode}-tab`).classList.remove('border-transparent', 'text-gray-500');
-    
+
     document.querySelectorAll('.detection-mode').forEach(section => {
         section.classList.add('hidden');
     });
-    
+
     document.getElementById(`${mode}-detection`).classList.remove('hidden');
 }
 
@@ -346,50 +346,50 @@ async function startLiveDetection() {
 
     try {
         showLoading();
-        
-        detectionStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 640, height: 480 } 
+
+        detectionStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: 640, height: 480 }
         });
-        
+
         const videoElement = document.getElementById('camera-feed');
         videoElement.srcObject = detectionStream;
-        
+
         document.getElementById('camera-placeholder').classList.add('hidden');
         videoElement.classList.remove('hidden');
         document.getElementById('detection-canvas').classList.remove('hidden');
-        
+
         // Update button states and colors
         const startBtn = document.getElementById('start-detection-btn');
         const stopBtn = document.getElementById('stop-detection-btn');
-        
+
         // Start button becomes red and disabled (transparent)
         startBtn.className = 'btn bg-red-500 text-white opacity-50 cursor-not-allowed';
         startBtn.disabled = true;
-        
+
         // Stop button becomes blue and active
         stopBtn.className = 'btn bg-blue-600 text-white hover:bg-blue-700';
         stopBtn.classList.remove('hidden');
-        
+
         document.getElementById('detection-status').className = 'detection-status active';
         document.getElementById('detection-status').innerHTML = '<i class="fas fa-play mr-2"></i>Detection Active';
         document.getElementById('current-detection').classList.remove('hidden');
-        
+
         const sessionResponse = await apiRequest('/detection/start-session', {
             method: 'POST',
             body: JSON.stringify({ type: 'live' })
         });
-        
+
         AppState.currentSessionId = sessionResponse.session_id;
         AppState.detectionActive = true;
-        
+
         // Session resume logic removed, always a new session.
-        
+
         // Start session duration timer
         startSessionTimer();
-        
+
         startDetectionLoop();
         showToast('Detection started successfully', 'success');
-        
+
     } catch (error) {
         console.error('Error starting detection:', error);
         showToast('Failed to start detection. Please check camera permissions.', 'error');
@@ -435,18 +435,18 @@ async function stopLiveDetection() {
 
     const startBtn = document.getElementById('start-detection-btn');
     const stopBtn = document.getElementById('stop-detection-btn');
-    if(startBtn) {
+    if (startBtn) {
         startBtn.className = 'btn btn-primary';
         startBtn.disabled = false;
     }
-    if(stopBtn) {
+    if (stopBtn) {
         stopBtn.className = 'btn btn-danger hidden';
         stopBtn.classList.add('hidden');
     }
-    
+
     document.getElementById('stop-alarm-btn')?.classList.add('hidden');
     const statusEl = document.getElementById('detection-status');
-    if(statusEl) {
+    if (statusEl) {
         statusEl.className = 'detection-status inactive';
         statusEl.innerHTML = '<i class="fas fa-pause mr-2"></i>Detection Inactive';
     }
@@ -573,19 +573,19 @@ async function startDetectionLoop() {
 
 function updateDetectionDisplay(result) {
     document.getElementById('detection-class').textContent = result.class || '-';
-    document.getElementById('detection-confidence').textContent = 
+    document.getElementById('detection-confidence').textContent =
         result.confidence ? `${(result.confidence * 100).toFixed(1)}%` : '-';
-    document.getElementById('detection-time').textContent = 
+    document.getElementById('detection-time').textContent =
         result.timestamp ? formatDate(result.timestamp) : '-';
-    
+
     const classElement = document.getElementById('detection-class');
     classElement.className = `text-2xl font-bold mb-2 ${getDetectionColor(result.class)}`;
-    
+
     updateSessionStats(result);
 }
 
 function getDetectionColor(detectionClass) {
-    switch(detectionClass) {
+    switch (detectionClass) {
         case 'Drowsiness': return 'text-red-500';
         case 'awake': return 'text-green-500';
         case 'yawn': return 'text-yellow-500';
@@ -598,18 +598,18 @@ function drawBoundingBox(ctx, detection) {
     if (!detection.bbox || detection.bbox.length !== 4) {
         return;
     }
-    
+
     const [x1, y1, x2, y2] = detection.bbox;
-    
+
     // Skip drawing if bbox is invalid (all zeros or negative dimensions)
     if (x1 === 0 && y1 === 0 && x2 === 0 && y2 === 0) {
         return;
     }
-    
+
     if (x2 <= x1 || y2 <= y1) {
         return;
     }
-    
+
     // Convert BGR color from backend to RGB for canvas
     let color;
     if (detection.color) {
@@ -617,24 +617,24 @@ function drawBoundingBox(ctx, detection) {
         color = `rgb(${r}, ${g}, ${b})`;
     } else {
         // Fallback colors matching backend exactly (BGR converted to RGB)
-        color = detection.class === 'Drowsiness' ? 'rgb(255, 0, 0)' : 
-                detection.class === 'awake' ? 'rgb(0, 255, 0)' : 
+        color = detection.class === 'Drowsiness' ? 'rgb(255, 0, 0)' :
+            detection.class === 'awake' ? 'rgb(0, 255, 0)' :
                 detection.class === 'yawn' ? 'rgb(255, 255, 0)' : 'rgb(255, 255, 255)';
     }
-    
+
     // Draw bounding box
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
-    
+
     // Draw label background
     const label = `${detection.class}: ${(detection.confidence * 100).toFixed(1)}%`;
     ctx.font = '16px Arial';
     const textWidth = ctx.measureText(label).width;
-    
+
     ctx.fillStyle = color;
     ctx.fillRect(x1, y1 - 30, textWidth + 10, 25);
-    
+
     // Draw label text
     ctx.fillStyle = 'white';
     ctx.fillText(label, x1 + 5, y1 - 10);
@@ -644,7 +644,7 @@ function handleDrowsinessDetection(result) {
     console.log('handleDrowsinessDetection called with:', result.class, 'confidence:', result.confidence);
     console.log('Current alarm settings:', currentAlarmSettings);
     console.log('AppState.alarmActive:', AppState.alarmActive);
-    
+
     if (result.class === 'Drowsiness') {
         if (!drowsinessStartTime) {
             drowsinessStartTime = Date.now();
@@ -653,7 +653,7 @@ function handleDrowsinessDetection(result) {
         } else {
             const drowsinessTime = (Date.now() - drowsinessStartTime) / 1000;
             console.log('⏱️ Drowsiness duration:', drowsinessTime.toFixed(1), 'seconds, trigger time:', currentAlarmSettings.triggerTime);
-            
+
             // Only count in session stats if drowsiness detected for more than 5 seconds
             if (drowsinessTime >= 5 && !drowsinessCountedForStats) {
                 sessionStats.drowsinessCount++;
@@ -662,11 +662,11 @@ function handleDrowsinessDetection(result) {
                 document.getElementById('total-detections').textContent = sessionStats.totalDetections;
                 drowsinessCountedForStats = true; // Mark as counted to avoid double counting
                 console.log('📊 Drowsiness counted in stats! Total count:', sessionStats.drowsinessCount);
-                
+
                 // Update backend with latest stats
                 updateBackendSessionStats();
             }
-            
+
             // Trigger alarm based on trigger time setting
             if (drowsinessTime >= currentAlarmSettings.triggerTime && !AppState.alarmActive) {
                 console.log('🚨 SHOULD TRIGGER ALARM NOW! Duration:', drowsinessTime.toFixed(1), 'seconds, Trigger time:', currentAlarmSettings.triggerTime);
@@ -695,7 +695,7 @@ function createBeepSound() {
         let isPlaying = false;
         let oscillator = null;
         let gainNode = null;
-        
+
         const audio = {
             play: () => {
                 return new Promise((resolve, reject) => {
@@ -704,23 +704,23 @@ function createBeepSound() {
                             resolve();
                             return;
                         }
-                        
+
                         oscillator = audioContext.createOscillator();
                         gainNode = audioContext.createGain();
-                        
+
                         oscillator.connect(gainNode);
                         gainNode.connect(audioContext.destination);
-                        
+
                         oscillator.frequency.value = 800; // 800 Hz beep
                         oscillator.type = 'sine';
-                        
+
                         // Set volume - use this.volume if available
                         const volume = this.volume || 0.8;
                         gainNode.gain.setValueAtTime(volume, audioContext.currentTime);
-                        
+
                         oscillator.start(audioContext.currentTime);
                         isPlaying = true;
-                        
+
                         console.log('🔊 Web Audio beep started at', volume, 'volume');
                         resolve();
                     } catch (error) {
@@ -744,7 +744,7 @@ function createBeepSound() {
             volume: 0.8,
             loop: false
         };
-        
+
         return audio;
     } catch (error) {
         console.error('❌ Error creating beep sound:', error);
@@ -765,7 +765,7 @@ function triggerAlarm() {
     console.log('🚨🚨🚨 triggerAlarm() called 🚨🚨🚨');
     console.log('Setting AppState.alarmActive to true');
     AppState.alarmActive = true;
-    
+
     // Make stop alarm button blue and prominent when alarm is active
     const stopAlarmBtn = document.getElementById('stop-alarm-btn');
     if (stopAlarmBtn) {
@@ -775,18 +775,18 @@ function triggerAlarm() {
     } else {
         console.error('❌ Stop alarm button not found!');
     }
-    
+
     console.log('📋 Current alarm settings:', currentAlarmSettings);
     console.log('🔊 Volume setting:', currentAlarmSettings.volume);
     console.log('🎵 Sound file:', currentAlarmSettings.soundFile);
-    
+
     // Always use default sound file if soundFile is undefined
     const defaultSoundFile = `${AUDIO_BASE_URL}/sound-default/Danger.mp3`;
     const soundFileToUse = currentAlarmSettings.soundFile || defaultSoundFile;
-    
+
     console.log('🎵 Loading audio file:', soundFileToUse);
     alarmAudio = new Audio(soundFileToUse);
-    
+
     // Add event listeners for debugging
     alarmAudio.addEventListener('loadstart', () => console.log('🎵 Audio: Load started'));
     alarmAudio.addEventListener('canplay', () => console.log('🎵 Audio: Can play'));
@@ -808,13 +808,13 @@ function triggerAlarm() {
     alarmAudio.addEventListener('loadeddata', () => console.log('🎵 Audio: Data loaded'));
     alarmAudio.addEventListener('play', () => console.log('▶️ Audio: Started playing'));
     alarmAudio.addEventListener('pause', () => console.log('⏸️ Audio: Paused'));
-    
+
     if (alarmAudio) {
         alarmAudio.volume = currentAlarmSettings.volume;
         alarmAudio.loop = true;
         console.log('🔊 Audio volume set to:', alarmAudio.volume);
         console.log('🔄 Audio loop set to:', alarmAudio.loop);
-        
+
         console.log('▶️ Attempting to play audio...');
         alarmAudio.play().then(() => {
             console.log('✅ Audio playing successfully!');
@@ -834,23 +834,23 @@ function triggerAlarm() {
     } else {
         console.error('❌ No audio object created!');
     }
-    
+
     // Visual feedback
     document.body.style.animation = 'pulse 1s infinite';
     console.log('💫 Body animation set to pulse');
-    
+
     showToast('🚨 DROWSINESS DETECTED! Please take a break.', 'error', 10000);
     console.log('📢 Toast notification shown');
 }
 
 function stopAlarm() {
     AppState.alarmActive = false;
-    
+
     if (alarmAudio) {
         alarmAudio.pause();
         alarmAudio = null;
     }
-    
+
     // Reset stop alarm button to default state and hide it
     const stopAlarmBtn = document.getElementById('stop-alarm-btn');
     stopAlarmBtn.className = 'btn bg-red-500 text-white opacity-50 cursor-not-allowed';
@@ -860,7 +860,7 @@ function stopAlarm() {
 }
 
 function createBeepSound() {
-    return { play: () => {}, pause: () => {}, volume: 1, loop: false };
+    return { play: () => { }, pause: () => { }, volume: 1, loop: false };
 }
 
 function initializeSessionStats() {
@@ -893,7 +893,7 @@ function initializeSessionStats() {
 // Function to update session stats on the backend
 async function updateBackendSessionStats() {
     if (!AppState.detectionActive || !AppState.currentSessionId) return;
-    
+
     try {
         await apiRequest(`/detection/update-session/${AppState.currentSessionId}`, {
             method: 'POST',
@@ -910,20 +910,20 @@ async function updateBackendSessionStats() {
 }
 
 function updateSessionStats(result) {
-    switch(result.class) {
-        case 'awake': 
-            sessionStats.awakeCount++; 
+    switch (result.class) {
+        case 'awake':
+            sessionStats.awakeCount++;
             sessionStats.totalDetections++;
             updateBackendSessionStats();
             break;
-        case 'yawn': 
-            sessionStats.yawnCount++; 
+        case 'yawn':
+            sessionStats.yawnCount++;
             sessionStats.totalDetections++;
             updateBackendSessionStats();
             break;
         // Drowsiness is handled separately in handleDrowsinessDetection() - only counted after 5+ seconds
     }
-    
+
     document.getElementById('total-detections').textContent = sessionStats.totalDetections;
     // drowsiness-count is updated in handleDrowsinessDetection()
     document.getElementById('awake-count').textContent = sessionStats.awakeCount;
@@ -933,7 +933,7 @@ function updateSessionStats(result) {
 function startSessionTimer() {
     // Start tracking session time
     sessionStartTime = Date.now();
-    
+
     // Start the timer that updates every second
     sessionDurationTimer = setInterval(updateSessionDurationDisplay, 1000);
 }
@@ -941,30 +941,30 @@ function startSessionTimer() {
 async function endSessionOnNavigate() {
     if (AppState.detectionActive && AppState.currentSessionId) {
         console.log("Navigating away from detection page. Ending session as interrupted.");
-        
+
         // Stop detection processing immediately
         AppState.detectionActive = false;
-        
+
         // Stop camera stream
         if (detectionStream) {
             detectionStream.getTracks().forEach(track => track.stop());
             detectionStream = null;
         }
-        
+
         // Clear detection interval
         if (detectionInterval) {
             clearInterval(detectionInterval);
             detectionInterval = null;
         }
-        
+
         // Stop session timer
         stopSessionTimer();
-        
+
         // Call end-session endpoint to mark as interrupted
         try {
             await apiRequest('/api/detection/end-session', {
                 method: 'POST',
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     session_id: AppState.currentSessionId,
                     jwt: localStorage.getItem('authToken')
                 })
@@ -973,10 +973,10 @@ async function endSessionOnNavigate() {
         } catch (error) {
             console.error('Error marking session as interrupted:', error);
         }
-        
+
         // Reset UI state
         resetDetectionUI();
-        
+
         // Clear session ID
         AppState.currentSessionId = null;
     }
@@ -989,18 +989,18 @@ function resetDetectionUI() {
 
     const startBtn = document.getElementById('start-detection-btn');
     const stopBtn = document.getElementById('stop-detection-btn');
-    if(startBtn) {
+    if (startBtn) {
         startBtn.className = 'btn btn-primary';
         startBtn.disabled = false;
     }
-    if(stopBtn) {
+    if (stopBtn) {
         stopBtn.className = 'btn btn-danger hidden';
         stopBtn.classList.add('hidden');
     }
-    
+
     document.getElementById('stop-alarm-btn')?.classList.add('hidden');
     const statusEl = document.getElementById('detection-status');
-    if(statusEl) {
+    if (statusEl) {
         statusEl.className = 'detection-status inactive';
         statusEl.innerHTML = '<i class="fas fa-pause mr-2"></i>Detection Inactive';
     }
@@ -1016,7 +1016,7 @@ function stopSessionTimer() {
         totalSessionTime += Math.floor((Date.now() - sessionStartTime) / 1000);
         sessionStartTime = null;
     }
-    
+
     // Stop the timer
     if (sessionDurationTimer) {
         clearInterval(sessionDurationTimer);
@@ -1026,15 +1026,15 @@ function stopSessionTimer() {
 
 function updateSessionDurationDisplay() {
     let currentDuration = totalSessionTime;
-    
+
     // Add current active session time if camera is running
     if (sessionStartTime) {
         currentDuration += Math.floor((Date.now() - sessionStartTime) / 1000);
     }
-    
+
     const minutes = Math.floor(currentDuration / 60);
     const seconds = currentDuration % 60;
-    
+
     const el = document.getElementById('session-duration');
     if (!el) {
         // Element not rendered yet; avoid crashing
@@ -1640,17 +1640,17 @@ async function saveAlarmSettings() {
 // Export functions to window for HTML onclick handlers and page loading
 window.loadDetection = loadDetection;
 window.loadDetectionPage = loadDetectionPage;
-window.loadDetectionAlarmSounds = loadDetectionAlarmSounds;
-window.selectDetectionAlarmSound = selectDetectionAlarmSound;
-window.deleteDetectionAlarmSound = deleteDetectionAlarmSound;
-window.testDetectionAlarmSound = testDetectionAlarmSound;
-window.stopDetectionTestAudio = stopDetectionTestAudio;
+// window.loadDetectionAlarmSounds = loadDetectionAlarmSounds;
+// window.selectDetectionAlarmSound = selectDetectionAlarmSound;
+// window.deleteDetectionAlarmSound = deleteDetectionAlarmSound;
+// window.testDetectionAlarmSound = testDetectionAlarmSound;
+// window.stopDetectionTestAudio = stopDetectionTestAudio;
 window.switchDetectionMode = switchDetectionMode;
 window.startLiveDetection = startLiveDetection;
 window.stopLiveDetection = stopLiveDetection;
 window.stopAlarm = stopAlarm;
 window.updateTriggerTime = updateTriggerTime;
-window.uploadAlarmSound = uploadAlarmSound;
+// window.uploadAlarmSound = uploadAlarmSound;
 
 // File upload and processing functions
 window.handleFileUpload = handleFileUpload;
@@ -1660,10 +1660,10 @@ window.downloadProcessedVideo = downloadProcessedVideo;
 
 function handleFileUpload(file) {
     if (!file) return;
-    
+
     const uploadArea = document.getElementById('upload-area');
     const uploadControls = document.getElementById('upload-controls');
-    
+
     uploadArea.innerHTML = `
         <div class="text-center">
             <i class="fas fa-file text-4xl text-indigo-600 mb-4"></i>
@@ -1671,35 +1671,35 @@ function handleFileUpload(file) {
             <p class="text-sm text-gray-500">Size: ${(file.size / 1024 / 1024).toFixed(2)} MB</p>
         </div>
     `;
-    
+
     uploadControls.classList.remove('hidden');
     window.uploadedFile = file;
 }
 
 async function processUploadedFile() {
     if (!window.uploadedFile) return;
-    
+
     const progressContainer = document.getElementById('upload-progress');
     const progressFill = document.getElementById('progress-fill');
     const progressText = document.getElementById('progress-text');
     const progressPercentage = document.getElementById('progress-percentage');
     const processBtn = document.getElementById('process-file-btn');
     const resultsContainer = document.getElementById('upload-results');
-    
+
     // Show progress and disable button
     progressContainer.classList.remove('hidden');
     processBtn.disabled = true;
     processBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing...';
-    
+
     // Simulate progress animation
     let progress = 0;
     const progressInterval = setInterval(() => {
         progress += Math.random() * 15;
         if (progress > 90) progress = 90; // Cap at 90% until actual completion
-        
+
         progressFill.style.width = `${progress}%`;
         progressPercentage.textContent = `${Math.round(progress)}%`;
-        
+
         // Update progress text based on progress
         if (progress < 30) {
             progressText.textContent = 'Initializing analysis...';
@@ -1709,11 +1709,11 @@ async function processUploadedFile() {
             progressText.textContent = 'Applying detection model...';
         }
     }, 200);
-    
+
     try {
         const formData = new FormData();
         formData.append('file', window.uploadedFile);
-        
+
         const response = await fetch(`${API_BASE_URL}/detection/analyze-file`, {
             method: 'POST',
             headers: {
@@ -1721,43 +1721,43 @@ async function processUploadedFile() {
             },
             body: formData
         });
-        
+
         if (!response.ok) {
             throw new Error('File processing failed');
         }
-        
+
         // Complete the progress
         clearInterval(progressInterval);
         progressFill.style.width = '100%';
         progressPercentage.textContent = '100%';
         progressText.textContent = 'Analysis complete!';
-        
+
         // Small delay to show completion
         await new Promise(resolve => setTimeout(resolve, 500));
-        
+
         const result = await response.json();
         console.log('Upload result:', result); // Debug log
         console.log('Original filename from backend:', result.original_filename); // Debug log
         console.log('Uploaded file name:', window.uploadedFile ? window.uploadedFile.name : 'No file'); // Debug log
-        
+
         // Store filename globally for download - use uploaded file name as fallback
         window.currentUploadedFilename = result.original_filename || (window.uploadedFile ? window.uploadedFile.name : null);
         console.log('Stored filename:', window.currentUploadedFilename); // Debug log
-        
+
         displayUploadResults(result);
         showToast('File processed successfully', 'success');
-        
+
     } catch (error) {
         clearInterval(progressInterval);
         console.error('Error processing file:', error);
-        
+
         // Show error state
         progressFill.style.width = '100%';
         progressFill.classList.remove('bg-indigo-600');
         progressFill.classList.add('bg-red-500');
         progressText.textContent = 'Processing failed';
         progressPercentage.textContent = 'Error';
-        
+
         showToast('File processing failed', 'error');
     } finally {
         // Reset button and hide progress after delay
@@ -1765,7 +1765,7 @@ async function processUploadedFile() {
             progressContainer.classList.add('hidden');
             processBtn.disabled = false;
             processBtn.innerHTML = '<i class="fas fa-cogs mr-2"></i>Process File';
-            
+
             // Reset progress bar for next use
             progressFill.style.width = '0%';
             progressFill.classList.remove('bg-red-500');
@@ -1778,7 +1778,7 @@ async function processUploadedFile() {
 
 function displayUploadResults(result) {
     const resultsContainer = document.getElementById('upload-results');
-    
+
     let resultHTML = `
         <div class="space-y-4">
             <h4 class="text-lg font-semibold">Analysis Complete</h4>
@@ -1799,7 +1799,7 @@ function displayUploadResults(result) {
             <div class="text-center pt-4 border-t">
                 <div class="text-lg font-medium text-gray-700">Total Detections: ${result.total_detections || 0}</div>
             </div>`;
-    
+
     // Display processed image if available (for image uploads)
     if (result.processed_image) {
         resultHTML += `
@@ -1813,7 +1813,7 @@ function displayUploadResults(result) {
                 </div>
             </div>`;
     }
-    
+
     // Show note for video files with download option
     if (result.file_type === 'video') {
         resultHTML += `
@@ -1831,7 +1831,7 @@ function displayUploadResults(result) {
                 </div>
             </div>`;
     }
-    
+
     resultHTML += `</div>`;
     resultsContainer.innerHTML = resultHTML;
 }
@@ -1847,7 +1847,7 @@ function downloadProcessedImage(base64Data, filename) {
         }
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: 'image/jpeg' });
-        
+
         // Create download link
         const imageUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -1872,18 +1872,18 @@ async function downloadProcessedVideo(originalFilename) {
         console.log('Download video called with filename:', filename); // Debug log
         console.log('Stored filename:', window.currentUploadedFilename); // Debug log
         console.log('Passed filename:', originalFilename); // Debug log
-        
+
         if (!filename || filename === 'undefined' || filename === 'unknown') {
             alert('No filename available for download. Please upload a video file first.');
             return;
         }
-        
+
         // Create a simple link approach to avoid CORS issues
         const token = localStorage.getItem('authToken');
         const url = `${API_BASE_URL}/detection/download-processed-video?filename=${encodeURIComponent(filename)}&token=${encodeURIComponent(token)}`;
-        
+
         console.log('Download URL:', url); // Debug log
-        
+
         // Use window.open for direct download
         window.open(url, '_blank');
     } catch (error) {
@@ -1895,7 +1895,7 @@ async function downloadProcessedVideo(originalFilename) {
 // Main page load function for detection page
 function loadDetectionPage() {
     console.log('Initializing detection page...');
-    
+
     // Initialize session stats
     currentSession = {
         startTime: new Date(),
@@ -1907,18 +1907,18 @@ function loadDetectionPage() {
         sessionId: null,
         videoFile: null
     };
-    
+
     // Set up event listeners - only if elements exist
     const startDetectionBtn = document.getElementById('start-detection-btn');
     const stopDetectionBtn = document.getElementById('stop-detection-btn');
-    
+
     if (startDetectionBtn) {
         startDetectionBtn.addEventListener('click', startLiveDetection);
     }
     if (stopDetectionBtn) {
         stopDetectionBtn.addEventListener('click', stopLiveDetection);
     }
-    
+
     // Set up file upload
     const fileInput = document.getElementById('file-input');
     if (fileInput) {
