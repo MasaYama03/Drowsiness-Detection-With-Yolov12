@@ -2,6 +2,6 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "export LD_LIBRARY_PATH=/root/.nix-profile/lib:$LD_LIBRARY_PATH && gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app"
+startCommand = "export LD_LIBRARY_PATH=$(ls -d /nix/store/*/lib 2>/dev/null | tr '\\n' ':'):/root/.nix-profile/lib:$LD_LIBRARY_PATH && gunicorn --bind 0.0.0.0:$PORT --timeout 120 app:app"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10

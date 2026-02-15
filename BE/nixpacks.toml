@@ -2,4 +2,4 @@
 nixPkgs = ["python312", "libGL", "glib"]
 
 [start]
-cmd = "export LD_LIBRARY_PATH=/root/.nix-profile/lib:$LD_LIBRARY_PATH && gunicorn --workers 1 --timeout 120 app:app"
+cmd = "export LD_LIBRARY_PATH=$(ls -d /nix/store/*/lib 2>/dev/null | tr '\n' ':'):/root/.nix-profile/lib:$LD_LIBRARY_PATH && gunicorn --workers 1 --timeout 120 app:app"
