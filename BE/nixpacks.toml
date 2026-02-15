@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["libGL", "glib"]
+nixPkgs = ["python312", "gcc", "libGL", "glib"]
 
 [start]
 cmd = "gunicorn --workers 1 --timeout 120 app:app"
