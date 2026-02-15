@@ -65,7 +65,8 @@ cors_origins_list = [o.strip() for o in env_origins.split(',') if o.strip()]
 defaults = [
     "http://localhost:8080", 
     "http://127.0.0.1:8080", 
-    "https://drowsiness-detection-with-yolov12.vercel.app"
+    "https://drowsiness-detection-with-yolov12.vercel.app",
+    "https://generous-harmony-production-503f.up.railway.app"
 ]
 
 for origin in defaults:
@@ -98,7 +99,7 @@ CORS(app,
              "max_age": 600
          }
      },
-     supports_credentials=False
+     supports_credentials=True
 )
 
 # Detection Configuration
