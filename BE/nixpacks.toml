@@ -1,6 +1,6 @@
 [phases.setup]
 nixPkgs = ["python312"]
-aptPkgs = ["libgl1-mesa-glx", "libglib2.0-0"]
+aptPkgs = ["libgl1", "libglib2.0-0"]
 
 [start]
 cmd = "gunicorn --workers 1 --timeout 120 app:app"
