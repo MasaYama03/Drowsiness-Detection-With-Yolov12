@@ -136,34 +136,52 @@ try:
         print(f"DEBUG: Listing directory {model_dir}: {os.listdir(model_dir)}")
     else:
         print(f"DEBUG: Directory {model_dir} does not exist!")
-    # Try loading with explicit task specification to avoid compatibility issues
+    
+    # Fix for PyTorch 2.6+ weights_only=True default
+    # Must add safe globals BEFORE loading the model
+    import torch
+    try:
+        from ultralytics.nn.tasks import DetectionModel
+        torch.serialization.add_safe_globals([DetectionModel])
+        print("DEBUG: Added DetectionModel to torch safe globals")
+    except Exception as safe_err:
+        print(f"DEBUG: Could not add safe globals (non-critical): {safe_err}")
+    
+    # Also monkey-patch torch.load to force weights_only=False as fallback
+    _original_torch_load = torch.load
+    def _patched_torch_load(*args, **kwargs):
+        kwargs.setdefault('weights_only', False)
+        return _original_torch_load(*args, **kwargs)
+    torch.load = _patched_torch_load
+    print("DEBUG: Patched torch.load to default weights_only=False")
+    
+    # Try loading with explicit task specification
     model = YOLO(MODEL_PATH, task='detect')
     print("Model loaded successfully")
     print(f"Model classes: {model.names}")
+    
+    # Restore original torch.load
+    torch.load = _original_torch_load
 except Exception as e:
     print(f"Error loading model: {e}")
     print("Attempting fallback model loading...")
     try:
-        # Fallback: try loading with older ultralytics version compatibility
         from ultralytics import YOLO
         import torch
         
-        # Check if it's a custom trained model that needs specific handling
-        if MODEL_PATH.endswith('.pt'):
-            # Try direct torch loading first
-            try:
-                # weights_only=False required for PyTorch 2.6+ with custom classes
-                model = torch.load(MODEL_PATH, map_location='cpu', weights_only=False)
-                print("Model loaded with torch.load")
-            except:
-                # Try YOLO with force_reload
-                model = YOLO(MODEL_PATH)
-                print("Model loaded with YOLO fallback")
-                print(f"Model classes: {model.names}")
-        else:
-            model = YOLO(MODEL_PATH)
-            print("Model loaded with fallback method")
-            print(f"Model classes: {model.names}")
+        # Force weights_only=False for PyTorch 2.6+ compatibility
+        _original_torch_load = torch.load
+        def _patched_torch_load(*args, **kwargs):
+            kwargs.setdefault('weights_only', False)
+            return _original_torch_load(*args, **kwargs)
+        torch.load = _patched_torch_load
+        
+        model = YOLO(MODEL_PATH, task='detect')
+        print("Model loaded with fallback method")
+        print(f"Model classes: {model.names}")
+        
+        # Restore original torch.load
+        torch.load = _original_torch_load
     except Exception as e2:
         print(f"Fallback model loading also failed: {e2}")
         print("Server will continue without model - detection features disabled")
