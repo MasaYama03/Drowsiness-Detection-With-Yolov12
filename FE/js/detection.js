@@ -497,7 +497,7 @@ async function startDetectionLoop() {
             alarmSound: alarmSettings.alarmSound || 'default'
         };
         selectedAlarmSound = currentAlarmSettings.alarmSound;
-        await loadDetectionAlarmSounds();
+        // await loadDetectionAlarmSounds(); // Feature disabled
     } catch (error) {
         console.error('Error loading alarm settings:', error);
         // Fallback settings
