@@ -1,6 +1,6 @@
 # DrowsyGuard - Drowsiness Detection System
 
-A modern, responsive web application for real-time drowsiness detection while driving using YOLOv11 deep learning model.
+A modern, responsive web application for real-time drowsiness detection while driving using YOLOv12 deep learning model.
 
 ## Features
 
